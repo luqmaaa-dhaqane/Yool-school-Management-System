@@ -1,0 +1,38 @@
+{% extends "admin/base_site.html" %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+<a href="{% url 'admin:people_student_changelist' %}">Students</a> &rsaquo; Import</div>
+{% endblock %}
+{% block content %}
+<p>Upload a CSV with one student per row. Start with <a href="{% url 'admin:people_student_import_template' %}">the template</a>.
+Required columns: <strong>first_name, last_name, gender, date_of_birth</strong>.
+Optional: {{ columns|join:", " }}.</p>
+<p>Dates: YYYY-MM-DD or DD/MM/YYYY. If <em>grade</em> and <em>section</em> are filled, the student is placed in that class
+for the current academic year. Always preview first. If any row has an error, nothing is saved.</p>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <div class="submit-row"><input type="submit" class="default" value="Run import"></div>
+</form>
+
+{% if report %}
+<h2>{% if report.dry_run %}Preview{% elif report.committed %}Imported{% else %}Not saved{% endif %}</h2>
+<ul>
+  <li>Rows read: <strong>{{ report.total }}</strong></li>
+  <li>Students {% if report.committed %}created{% else %}that would be created{% endif %}: <strong>{{ report.created }}</strong></li>
+  <li>Placed in classes: <strong>{{ report.enrolled }}</strong></li>
+  <li>New guardian contacts: <strong>{{ report.guardians_created }}</strong></li>
+  <li>Errors: <strong>{{ report.errors|length }}</strong></li>
+</ul>
+{% if report.errors %}
+<table>
+  <thead><tr><th>Line</th><th>Problem</th></tr></thead>
+  <tbody>{% for line, message in report.errors %}<tr><td>{{ line }}</td><td>{{ message }}</td></tr>{% endfor %}</tbody>
+</table>
+<p>Fix these lines in your file and upload it again.</p>
+{% elif report.dry_run %}
+<p><strong>No errors.</strong> Untick "Preview only" and upload again to save.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,31 @@
+# Development:  docker compose up -d db      (Postgres only; run Django on your machine)
+# Full stack:   docker compose up -d --build (Postgres + app on http://localhost:8000)
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: sis
+      POSTGRES_USER: sis
+      POSTGRES_PASSWORD: sis_dev_password
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sis -d sis"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: .
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://sis:sis_dev_password@db:5432/sis
+    ports: ["8000:8000"]
+    volumes: [media:/app/media]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  media:
