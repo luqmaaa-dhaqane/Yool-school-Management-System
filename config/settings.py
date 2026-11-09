@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "audit",
     "people",
     "academics",
+    "attendance",
 ]
 
 MIDDLEWARE = [
@@ -79,6 +80,8 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.Argon2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
 ]
+if "test" in sys.argv:  # fast hashing for the test suite only
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -122,3 +125,9 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": "INFO"},
 }
+
+# Attendance rules
+# Weekdays when school does not run (Monday=0 ... Sunday=6). Default: Friday.
+SCHOOL_NON_TEACHING_WEEKDAYS = [int(d) for d in env.list("SCHOOL_NON_TEACHING_WEEKDAYS", default=["4"])]
+# Teachers may correct a register for this many days back; Principal/Registrar have no limit.
+ATTENDANCE_EDIT_DAYS = env.int("ATTENDANCE_EDIT_DAYS", default=7)

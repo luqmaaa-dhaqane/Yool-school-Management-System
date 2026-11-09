@@ -28,6 +28,7 @@ ROLE_PERMISSIONS = {
         "core": P("school", "view", "change"),
         "audit": P("auditlog", *VIEW),
         "accounts": P("user", *VIEW),
+        "attendance": P("attendanceregister", *EDIT) + P("attendancerecord", *VIEW) + P("holiday", *CRUD),
     },
     Role.REGISTRAR: {
         "people": P("student", *EDIT) + ["view_medical_notes"]
@@ -36,6 +37,7 @@ ROLE_PERMISSIONS = {
             P("academicyear", *VIEW) + P("term", *VIEW) + P("gradelevel", *VIEW)
             + P("classsection", *VIEW) + P("subject", *VIEW) + P("enrollment", *EDIT)
         ),
+        "attendance": P("attendanceregister", *EDIT) + P("attendancerecord", *VIEW) + P("holiday", *VIEW),
     },
     Role.TEACHER: {
         "people": P("student", *VIEW) + P("guardian", *VIEW),
@@ -43,6 +45,7 @@ ROLE_PERMISSIONS = {
             P("academicyear", *VIEW) + P("term", *VIEW) + P("gradelevel", *VIEW)
             + P("classsection", *VIEW) + P("subject", *VIEW) + P("enrollment", *VIEW)
         ),
+        "attendance": P("attendanceregister", *EDIT) + P("attendancerecord", *VIEW) + P("holiday", *VIEW),
     },
 }
 

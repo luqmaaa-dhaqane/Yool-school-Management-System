@@ -1,4 +1,4 @@
-# SIS: Student Information System (Phase 1)
+# SIS: Student Information System (Phase 2)
 
 Django + PostgreSQL. Object-oriented domain design: business rules live on the
 model classes (`Student.withdraw()`, `AcademicYear.lock()`), views stay thin.
@@ -42,26 +42,32 @@ Roles: Super Admin, Principal, Registrar, Teacher. Guardians are plain contact r
 | `accounts` | `User` + `Role`; one permission group per role (`permissions.py`) |
 | `audit` | Append-only audit log of admin changes, promotions, imports |
 | `people` | `Student` (ID `YYYY-NNNN`, status rules), `Guardian` contacts, **CSV import** |
+| `attendance` | **Daily class registers** (Present/Absent/Late/Excused, reasons), holidays, daily summary, attendance by student, low-attendance list, CSV exports |
 | `academics` | Years, terms, grades, sections, subjects, **`Enrollment`** (capacity, one class per year, withdraw, transfer, graduate, promote, repeat), year-end promotion, class roster |
 
-## Using Phase 1
+## Using the system
 
-- **Place a student in a class:** Students > open a student > "Class enrollments", or People/Academics > Enrollments > Add.
+- **Place a student in a class:** Students > open a student > "Class enrollments", or Enrollments > Add.
 - **Import a list:** Students > "Import from CSV". Download the template, fill it, preview, then save.
-  Command line: `python manage.py import_students file.csv` (add `--commit` to save).
-- **Class list:** Class sections > "View / print" (also CSV download).
-- **Year end:** Class sections > tick one class > action "Promote this class to next year...". Pick the next class
-  and anyone repeating. For a final-year class use "Graduate this class".
+- **Class list:** Class sections > "View / print" (also CSV).
+- **Year end:** Class sections > tick one class > "Promote this class to next year...".
 - **Leaving:** Enrollments > tick students > "Withdraw" / "Transferred out" / "Graduated".
+- **Take attendance:** Attendance > "Take attendance" next to the class. Everyone starts as Present; mark the
+  exceptions (with an optional reason) and save. Open the same page again to correct it.
+- **Reports:** Attendance > Daily summary / Attendance by student / Low attendance list (all have CSV and print).
+- **Holidays:** Attendance > Holidays. Fridays are non-teaching by default (`SCHOOL_NON_TEACHING_WEEKDAYS` in `.env`).
+- **Teachers** only see their own class (the class where they are set as *Homeroom teacher*), its students,
+  guardians and registers. They can correct attendance up to 7 days back (`ATTENDANCE_EDIT_DAYS`);
+  Principal and Registrar have no limit. A locked term cannot be changed by anyone.
 
-## Upgrading from Phase 0
+## Updating to a new version
 
-Copy the new files over your `sis` folder (keep `.venv`, `.env`, `db.sqlite3`), then:
+Back up `db.sqlite3`, copy the new files over your `sis` folder (keep `.venv`, `.env`, `db.sqlite3`), then:
 
 ```bash
 pip install -r requirements.txt
 python manage.py migrate
-python manage.py seed --school "<your exact school name>"   # adds classes and syncs permissions
+python manage.py sync_roles        # refreshes permissions; needs no school name
 ```
 
 ## Conventions
@@ -72,9 +78,9 @@ python manage.py seed --school "<your exact school name>"   # adds classes and s
 4. Every new model gets a `school` FK (or reaches one) and joins `ROLE_PERMISSIONS`.
 5. New model => migration committed in the same change (CI enforces this).
 
-## Next (Phase 2)
+## Next (Phase 3)
 
-Attendance: one-screen daily register per class, absence reports.
+Grades: subject teachers per class, assessments with weights, grade entry, term grades, term locking.
 
 ## Before going live
 

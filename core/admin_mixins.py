@@ -14,6 +14,12 @@ class SchoolScopedAdminMixin:
         user = request.user
         if not user.is_superuser and getattr(user, "school_id", None):
             qs = qs.filter(**{self.school_lookup: user.school_id})
+        if not user.is_superuser and getattr(user, "role", "") == "teacher":
+            qs = self.scope_for_teacher(qs, user)
+        return qs
+
+    def scope_for_teacher(self, qs, user):
+        """Override to limit what a teacher sees (default: no extra limit)."""
         return qs
 
     def get_changeform_initial_data(self, request):

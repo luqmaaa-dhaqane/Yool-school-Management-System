@@ -107,4 +107,17 @@ class Command(BaseCommand):
                 Enrollment.enroll(student, demo_section)
             self.stdout.write("Demo students created and placed in Grade 3.")
 
+        if opts["demo"] and not User.objects.filter(username="teacher").exists():
+            password = secrets.token_urlsafe(10)
+            teacher = User.objects.create_user(
+                username="teacher", password=password, role=Role.TEACHER, school=school,
+                first_name="Demo", last_name="Teacher",
+            )
+            ClassSection.objects.filter(
+                academic_year=current_year, grade_level__name="Grade 3", name="A"
+            ).update(homeroom_teacher=teacher)
+            self.stdout.write(self.style.WARNING(
+                f"Created demo teacher 'teacher' (Grade 3 A) with password: {password}"
+            ))
+
         self.stdout.write(self.style.SUCCESS("Seed complete."))

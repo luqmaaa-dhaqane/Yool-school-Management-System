@@ -46,6 +46,11 @@ class StudentAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmin):
     readonly_fields = ("student_no",)
     inlines = [StudentGuardianInline, EnrollmentInline]
 
+    def scope_for_teacher(self, qs, user):
+        return qs.filter(
+            enrollments__status="enrolled", enrollments__class_section__homeroom_teacher=user
+        ).distinct()
+
     @admin.display(description="Class")
     def current_class_display(self, obj):
         return obj.current_class() or "-"
@@ -114,3 +119,9 @@ class StudentAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmin):
 class GuardianAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmin):
     list_display = ("full_name", "phone", "email")
     search_fields = ("first_name", "last_name", "phone", "email")
+
+    def scope_for_teacher(self, qs, user):
+        return qs.filter(
+            student_links__student__enrollments__status="enrolled",
+            student_links__student__enrollments__class_section__homeroom_teacher=user,
+        ).distinct()

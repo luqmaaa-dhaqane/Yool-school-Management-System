@@ -11,6 +11,7 @@ from django.utils.html import format_html
 from audit.mixins import AuditedAdminMixin
 from audit.models import AuditLog
 from core.admin_mixins import SchoolScopedAdminMixin
+from core.csv_utils import safe_row
 from core.exceptions import DomainError
 
 from .forms import PromoteForm
@@ -46,6 +47,9 @@ class ClassSectionAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAd
     list_display = ("display_name", "academic_year", "homeroom_teacher", "students", "capacity", "roster_link")
     list_filter = ("academic_year", "grade_level")
     actions = ["promote_action", "graduate_action"]
+
+    def scope_for_teacher(self, qs, user):
+        return qs.filter(homeroom_teacher=user)
 
     @admin.display(description="Students")
     def students(self, obj):
@@ -140,7 +144,7 @@ class ClassSectionAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAd
             writer = csv.writer(response)
             writer.writerow(["#", "Student no", "Name", "Gender", "Age", "Guardian", "Guardian phone"])
             for r in rows:
-                writer.writerow([r["n"], r["student_no"], r["name"], r["gender"], r["age"], r["guardian"], r["phone"]])
+                writer.writerow(safe_row([r["n"], r["student_no"], r["name"], r["gender"], r["age"], r["guardian"], r["phone"]]))
             return response
         context = {
             **self.admin_site.each_context(request),
@@ -161,6 +165,10 @@ class EnrollmentAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmi
     autocomplete_fields = ("student",)
     list_select_related = ("student", "class_section__grade_level", "academic_year")
     actions = ["withdraw_action", "transfer_action", "graduate_action"]
+
+    def scope_for_teacher(self, qs, user):
+        return qs.filter(class_section__homeroom_teacher=user)
+
     fields = ("student", "class_section", "enrolled_on", "notes", "status", "left_on", "academic_year")
 
     def get_readonly_fields(self, request, obj=None):

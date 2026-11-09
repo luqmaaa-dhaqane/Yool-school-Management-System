@@ -124,3 +124,14 @@ class AdminAccessTests(TestCase):
     def test_anonymous_redirected_to_login(self):
         response = self.client.get("/admin/people/student/")
         self.assertEqual(response.status_code, 302)
+
+
+class SyncRolesCommandTests(TestCase):
+    def test_command_creates_groups_with_permissions(self):
+        from django.contrib.auth.models import Group
+        from django.core.management import call_command
+
+        call_command("sync_roles", verbosity=0)
+        self.assertTrue(Group.objects.get(name="teacher").permissions.filter(codename="add_attendanceregister").exists())
+        call_command("sync_roles", verbosity=0)  # safe to repeat
+        self.assertEqual(Group.objects.filter(name="teacher").count(), 1)

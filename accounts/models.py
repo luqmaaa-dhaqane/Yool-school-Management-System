@@ -38,6 +38,27 @@ class User(AbstractUser):
     def has_role(self, *roles):
         return self.role in roles
 
+    def accessible_sections(self):
+        """Class sections this user may work with.
+
+        Teachers: only their own classes (homeroom today; subject classes join in the grades phase).
+        Principal/Registrar: every class of their school. Super admin: everything.
+        """
+        from academics.models import ClassSection
+
+        qs = ClassSection.objects.all()
+        if self.is_superuser:
+            return qs
+        if self.role not in Role.values or not self.school_id:
+            return qs.none()
+        qs = qs.filter(academic_year__school_id=self.school_id)
+        if self.role == Role.TEACHER:
+            qs = qs.filter(homeroom_teacher=self)
+        return qs
+
+    def can_take_attendance_for(self, section):
+        return self.accessible_sections().filter(pk=section.pk).exists()
+
     def sync_role_group(self):
         """Make the user's group membership match their role (one role group)."""
         role_groups = Group.objects.filter(name__in=Role.values)

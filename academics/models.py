@@ -58,6 +58,10 @@ class AcademicYear(BaseModel):
     def contains(self, day):
         return self.starts_on <= day <= self.ends_on
 
+    def term_on(self, day):
+        """The term running on ``day`` or None (holidays between terms)."""
+        return self.terms.filter(starts_on__lte=day, ends_on__gte=day).first()
+
 
 class Term(BaseModel):
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name="terms")
@@ -157,6 +161,15 @@ class ClassSection(BaseModel):
 
     def has_capacity(self):
         return self.capacity is None or self.enrolled_count() < self.capacity
+
+    def enrollments_on(self, day):
+        """Students who belonged to this class on ``day`` (joined by then, not yet left)."""
+        return list(
+            self.enrollments.filter(enrolled_on__lte=day)
+            .filter(models.Q(left_on__isnull=True) | models.Q(left_on__gte=day))
+            .select_related("student")
+            .order_by("student__last_name", "student__first_name")
+        )
 
     def roster(self):
         """Active enrollments, alphabetical by student name."""

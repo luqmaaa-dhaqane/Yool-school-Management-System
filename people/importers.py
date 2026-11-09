@@ -171,7 +171,10 @@ class StudentImporter:
             student.add_guardian(guardian, row.get("guardian_relationship") or "Guardian", is_primary=True)
 
         if section:
-            Enrollment.enroll(student, section)
+            # Existing students count as enrolled from the admission date or the year start, whichever is later.
+            start = section.academic_year.starts_on
+            enrolled_on = max(student.admitted_on, start) if student.admitted_on else start
+            Enrollment.enroll(student, section, on=enrolled_on)
             report.enrolled += 1
 
     def _find_section(self, grade_text, section_text, ClassSection):

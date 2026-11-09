@@ -35,7 +35,8 @@ class AdminPageTests(TestCase):
         return user
 
     def test_roster_page_and_csv(self):
-        self.login(Role.TEACHER)
+        teacher = self.login(Role.TEACHER)
+        ClassSection.objects.filter(pk=self.sec.pk).update(homeroom_teacher=teacher)
         page = self.client.get(f"/admin/academics/classsection/{self.sec.pk}/roster/")
         self.assertContains(page, "Amina Ali")
         csv_response = self.client.get(f"/admin/academics/classsection/{self.sec.pk}/roster/?format=csv")
