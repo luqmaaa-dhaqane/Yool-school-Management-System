@@ -1,5 +1,9 @@
 from django.contrib.auth.models import AbstractUser, Group, UserManager as DjangoUserManager
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
+
+from core.exceptions import DomainError
 
 
 class Role(models.TextChoices):
@@ -38,12 +42,8 @@ class User(AbstractUser):
     def has_role(self, *roles):
         return self.role in roles
 
-    def accessible_sections(self):
-        """Class sections this user may work with.
-
-        Teachers: only their own classes (homeroom today; subject classes join in the grades phase).
-        Principal/Registrar: every class of their school. Super admin: everything.
-        """
+    # --- which classes this user may work with ----------------------------
+    def _school_sections(self):
         from academics.models import ClassSection
 
         qs = ClassSection.objects.all()
@@ -51,13 +51,42 @@ class User(AbstractUser):
             return qs
         if self.role not in Role.values or not self.school_id:
             return qs.none()
-        qs = qs.filter(academic_year__school_id=self.school_id)
-        if self.role == Role.TEACHER:
+        return qs.filter(academic_year__school_id=self.school_id)
+
+    def managed_sections(self):
+        """Classes this user runs: attendance, class lists, mark sheets.
+
+        Teachers: only the class where they are the homeroom teacher.
+        Principal/Registrar: every class of their school. Super admin: everything.
+        """
+        qs = self._school_sections()
+        if self.role == Role.TEACHER and not self.is_superuser:
             qs = qs.filter(homeroom_teacher=self)
         return qs
 
+    def accessible_sections(self):
+        """Classes this user may see: the ones they run plus the ones where they teach a subject."""
+        qs = self._school_sections()
+        if self.role == Role.TEACHER and not self.is_superuser:
+            qs = qs.filter(models.Q(homeroom_teacher=self) | models.Q(class_subjects__teacher=self)).distinct()
+        return qs
+
     def can_take_attendance_for(self, section):
-        return self.accessible_sections().filter(pk=section.pk).exists()
+        """Attendance is the class's homeroom teacher's job (or admin staff); subject teachers do not take it."""
+        return self.managed_sections().filter(pk=section.pk).exists()
+
+    # --- protecting the last super admin ----------------------------------
+    @classmethod
+    def active_super_admins(cls):
+        return cls.objects.filter(is_active=True, is_superuser=True)
+
+    def is_last_super_admin(self):
+        return (
+            self.pk is not None
+            and self.is_superuser
+            and self.is_active
+            and not User.active_super_admins().exclude(pk=self.pk).exists()
+        )
 
     def sync_role_group(self):
         """Make the user's group membership match their role (one role group)."""
@@ -70,10 +99,23 @@ class User(AbstractUser):
 
     def save(self, *args, **kwargs):
         self.phone = self.phone or None  # allow many blank phones with UNIQUE
-        if self.role == Role.SUPER_ADMIN:
-            self.is_superuser = True
-            self.is_staff = True
-        elif self.role in Role.values:
+        if self.role in Role.values:
+            self.is_superuser = self.role == Role.SUPER_ADMIN  # the role is the single source of truth
             self.is_staff = True  # every remaining role is school staff
+        if not self._state.adding:
+            before = User.objects.filter(pk=self.pk).values("is_superuser", "is_active").first()
+            if before and before["is_superuser"] and before["is_active"]:
+                still_super = self.is_superuser and self.is_active
+                if not still_super and not User.active_super_admins().exclude(pk=self.pk).exists():
+                    raise DomainError(
+                        "This is the only active super admin. Create another super admin before "
+                        "demoting or deactivating this account."
+                    )
         super().save(*args, **kwargs)
         self.sync_role_group()
+
+
+@receiver(pre_delete, sender=User)
+def _protect_last_super_admin(sender, instance, **kwargs):
+    if instance.is_last_super_admin():
+        raise DomainError("The last active super admin cannot be deleted.")

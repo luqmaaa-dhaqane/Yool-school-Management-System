@@ -1,0 +1,12 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ brand_short_name }}{% endblock %}
+{% block extrahead %}{{ block.super }}<script defer src="{% static 'core/show_password.js' %}"></script>{% endblock %}
+{% block branding %}
+<div id="site-name" style="display:flex;align-items:center;gap:10px;">
+  {% if brand_logo_url %}<img src="{{ brand_logo_url }}" alt="" style="height:38px;width:auto;border-radius:6px;background:#fff;padding:2px;">{% endif %}
+  <a href="{% url 'admin:index' %}">{{ brand_name }}</a>
+</div>
+{% if user.is_anonymous %}{% include "admin/color_theme_toggle.html" %}{% endif %}
+{% endblock %}
+{% block nav-global %}{% endblock %}

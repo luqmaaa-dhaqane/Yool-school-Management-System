@@ -24,6 +24,10 @@ ROLE_PERMISSIONS = {
         "academics": (
             P("academicyear", *EDIT) + P("term", *CRUD) + P("gradelevel", *EDIT)
             + P("classsection", *CRUD) + P("subject", *EDIT) + P("enrollment", *EDIT)
+            + P("classsubject", *CRUD)
+        ),
+        "grades": (
+            P("assessmenttype", *EDIT) + P("gradeband", *EDIT) + P("assessment", *CRUD) + P("gradeentry", *EDIT)
         ),
         "core": P("school", "view", "change"),
         "audit": P("auditlog", *VIEW),
@@ -36,6 +40,10 @@ ROLE_PERMISSIONS = {
         "academics": (
             P("academicyear", *VIEW) + P("term", *VIEW) + P("gradelevel", *VIEW)
             + P("classsection", *VIEW) + P("subject", *VIEW) + P("enrollment", *EDIT)
+            + P("classsubject", *EDIT)
+        ),
+        "grades": (
+            P("assessmenttype", *VIEW) + P("gradeband", *VIEW) + P("assessment", *VIEW) + P("gradeentry", *VIEW)
         ),
         "attendance": P("attendanceregister", *EDIT) + P("attendancerecord", *VIEW) + P("holiday", *VIEW),
     },
@@ -44,6 +52,10 @@ ROLE_PERMISSIONS = {
         "academics": (
             P("academicyear", *VIEW) + P("term", *VIEW) + P("gradelevel", *VIEW)
             + P("classsection", *VIEW) + P("subject", *VIEW) + P("enrollment", *VIEW)
+            + P("classsubject", *VIEW)
+        ),
+        "grades": (
+            P("assessmenttype", *VIEW) + P("gradeband", *VIEW) + P("assessment", *CRUD) + P("gradeentry", *EDIT)
         ),
         "attendance": P("attendanceregister", *EDIT) + P("attendancerecord", *VIEW) + P("holiday", *VIEW),
     },

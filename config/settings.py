@@ -1,4 +1,5 @@
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -29,6 +30,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "axes",
     # Project apps (dependency order: core <- accounts <- audit <- people/academics)
     "core",
     "accounts",
@@ -36,6 +38,7 @@ INSTALLED_APPS = [
     "people",
     "academics",
     "attendance",
+    "grades",
 ]
 
 MIDDLEWARE = [
@@ -48,6 +51,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "axes.middleware.AxesMiddleware",  # must be last
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -55,13 +59,14 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "core.context_processors.branding",
             ],
         },
     },
@@ -75,6 +80,11 @@ DATABASES = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",  # lockout after repeated failed logins
+    "django.contrib.auth.backends.ModelBackend",
+]
 
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.Argon2PasswordHasher",
@@ -131,3 +141,18 @@ LOGGING = {
 SCHOOL_NON_TEACHING_WEEKDAYS = [int(d) for d in env.list("SCHOOL_NON_TEACHING_WEEKDAYS", default=["4"])]
 # Teachers may correct a register for this many days back; Principal/Registrar have no limit.
 ATTENDANCE_EDIT_DAYS = env.int("ATTENDANCE_EDIT_DAYS", default=7)
+
+# Login lockout (django-axes): 5 wrong passwords for the same username from the same
+# address locks that combination for 15 minutes. Unlock early: python manage.py axes_reset
+AXES_ENABLED = "test" not in sys.argv
+AXES_FAILURE_LIMIT = env.int("LOGIN_FAILURE_LIMIT", default=5)
+AXES_COOLOFF_TIME = timedelta(minutes=env.int("LOGIN_LOCKOUT_MINUTES", default=15))
+AXES_LOCKOUT_PARAMETERS = [["ip_address", "username"]]
+AXES_RESET_ON_SUCCESS = True
+
+# Branding (shown in the header, login page and browser tab). Override in .env.
+SITE_NAME = env("SITE_NAME", default="Yool International School")
+SITE_SUBTITLE = env("SITE_SUBTITLE", default="Student Management System")
+SITE_SHORT_NAME = env("SITE_SHORT_NAME", default="Yool SMS")
+# Put the school logo at core/static/core/logo.jpg (or change this path).
+SITE_LOGO_STATIC = env("SITE_LOGO_STATIC", default="core/logo.jpg")

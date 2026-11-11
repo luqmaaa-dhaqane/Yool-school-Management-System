@@ -162,6 +162,22 @@ class ClassSection(BaseModel):
     def has_capacity(self):
         return self.capacity is None or self.enrolled_count() < self.capacity
 
+    def enrollments_between(self, start, end):
+        """Students who belonged to this class at any time between two dates (for a term's grades)."""
+        return list(
+            self.enrollments.filter(enrolled_on__lte=end)
+            .filter(models.Q(left_on__isnull=True) | models.Q(left_on__gte=start))
+            .select_related("student")
+            .order_by("student__last_name", "student__first_name")
+        )
+
+    def add_all_subjects(self):
+        """Create a (teacher-less) ClassSubject for every school subject this class does not have yet."""
+        existing = set(self.class_subjects.values_list("subject_id", flat=True))
+        missing = Subject.objects.filter(school=self.academic_year.school).exclude(pk__in=existing)
+        ClassSubject.objects.bulk_create([ClassSubject(class_section=self, subject=sub) for sub in missing])
+        return missing.count()
+
     def enrollments_on(self, day):
         """Students who belonged to this class on ``day`` (joined by then, not yet left)."""
         return list(
@@ -194,6 +210,45 @@ class Subject(BaseModel):
 
     def __str__(self):
         return self.name
+
+
+class ClassSubject(BaseModel):
+    """A subject taught in a class, and who teaches it (the 'teaching assignment')."""
+
+    class_section = models.ForeignKey(ClassSection, on_delete=models.CASCADE, related_name="class_subjects")
+    subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name="class_subjects")
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        limit_choices_to={"role": "teacher"},
+        related_name="teaching_assignments",
+    )
+
+    class Meta:
+        ordering = ["class_section", "subject__name"]
+        constraints = [
+            models.UniqueConstraint(fields=["class_section", "subject"], name="uniq_subject_per_class"),
+        ]
+
+    def __str__(self):
+        return f"{self.class_section} - {self.subject}"
+
+    def clean(self):
+        if self.subject_id and self.class_section_id:
+            if self.subject.school_id != self.class_section.academic_year.school_id:
+                raise ValidationError("The subject belongs to a different school.")
+
+    def can_be_graded_by(self, user):
+        """Who may enter or change grades: the subject's teacher, the Principal, or a super admin."""
+        if user.is_superuser:
+            return True
+        if user.school_id != self.class_section.academic_year.school_id:
+            return False
+        if user.role == "principal":
+            return True
+        return user.role == "teacher" and self.teacher_id == user.pk
 
 
 class Enrollment(BaseModel):

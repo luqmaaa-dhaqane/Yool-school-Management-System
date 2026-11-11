@@ -1,13 +1,17 @@
+import random
 import secrets
-from datetime import date
+from datetime import date, timedelta
+from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from academics.models import AcademicYear, ClassSection, Enrollment, GradeLevel, Subject, Term
+from academics.models import AcademicYear, ClassSection, ClassSubject, Enrollment, GradeLevel, Subject, Term
 from accounts.models import Role, User
 from accounts.permissions import sync_role_groups
 from core.models import School
+from grades.models import Assessment, AssessmentType
+from grades.setup import ensure_grading_setup
 from people.models import Guardian, Student
 
 DEFAULT_SUBJECTS = [
@@ -80,6 +84,9 @@ class Command(BaseCommand):
         for code, name, name_so in DEFAULT_SUBJECTS:
             Subject.objects.get_or_create(school=school, code=code, defaults={"name": name, "name_so": name_so})
 
+        # Grading set-up (weights, letter bands) and every subject on every class (teachers are set later).
+        ensure_grading_setup(school)
+
         username = opts["admin_user"]
         if not User.objects.filter(username=username).exists():
             password = opts["admin_password"] or secrets.token_urlsafe(12)
@@ -116,8 +123,37 @@ class Command(BaseCommand):
             ClassSection.objects.filter(
                 academic_year=current_year, grade_level__name="Grade 3", name="A"
             ).update(homeroom_teacher=teacher)
+            ClassSubject.objects.filter(
+                class_section__academic_year=current_year, class_section__grade_level__name="Grade 3",
+                class_section__name="A", subject__code__in=["MTH", "ENG"],
+            ).update(teacher=teacher)
             self.stdout.write(self.style.WARNING(
-                f"Created demo teacher 'teacher' (Grade 3 A) with password: {password}"
+                f"Created demo teacher 'teacher' (Grade 3 A, teaches Mathematics and English) with password: {password}"
             ))
 
+        if opts["demo"]:
+            self._demo_grades(school, current_year)
+
         self.stdout.write(self.style.SUCCESS("Seed complete."))
+
+    def _demo_grades(self, school, year):
+        """A few sample assessments with scores so the gradebook has something to show."""
+        cs = ClassSubject.objects.filter(
+            class_section__academic_year=year, class_section__grade_level__name="Grade 3",
+            class_section__name="A", subject__code="MTH",
+        ).select_related("teacher", "class_section").first()
+        today = date.today()
+        term = year.term_on(today) or year.terms.filter(starts_on__lte=today).order_by("-starts_on").first()
+        if not (cs and cs.teacher and term) or Assessment.objects.filter(class_subject=cs, term=term).exists():
+            return
+        rng = random.Random(7)
+        quiz, midterm = (AssessmentType.objects.get(school=school, name=n) for n in ("Quiz", "Midterm"))
+        enrollments = cs.class_section.enrollments_between(term.starts_on, term.ends_on)
+        for title, kind, maximum, offset in [("Quiz 1", quiz, 20, 14), ("Quiz 2", quiz, 20, 7), ("Midterm", midterm, 50, 3)]:
+            held = min(max(today - timedelta(days=offset), term.starts_on), term.ends_on)
+            assessment = Assessment.objects.create(
+                class_subject=cs, term=term, assessment_type=kind, title=title, max_score=maximum, held_on=held
+            )
+            scores = {e.pk: Decimal(rng.randint(int(maximum * 0.45), maximum)) for e in enrollments}
+            assessment.record_scores(scores, cs.teacher)
+        self.stdout.write("Demo grades created (Grade 3 A, Mathematics).")

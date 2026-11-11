@@ -1,0 +1,26 @@
+{% extends "admin/base_site.html" %}
+{% block extrastyle %}{{ block.super }}
+<style>
+  .rep td, .rep th { padding:6px 10px; text-align:left; border-bottom:1px solid var(--border-color,#ccc); white-space:nowrap; }
+  .rep-filter { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; margin-bottom:14px; }
+  .rep-filter p { margin:0; }
+  @media print { #header, .breadcrumbs, .no-print, #nav-sidebar, .toggle-nav-sidebar { display:none !important; } body { background:#fff; color:#000; } }
+</style>
+{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+<a href="{% url 'admin:grades_assessment_changelist' %}">Gradebook</a> &rsaquo; Mark sheet</div>{% endblock %}
+{% block content %}
+<form method="get" class="rep-filter no-print">
+  {% for field in form %}<p>{{ field.errors }}<label>{{ field.label }}<br>{{ field }}</label></p>{% endfor %}
+  <input type="submit" value="Show mark sheet">
+</form>
+{% if rows is not None %}
+<p class="no-print"><a href="?{{ query }}&format=csv">Download CSV</a> &nbsp;|&nbsp; <a href="#" onclick="window.print(); return false;">Print</a> &nbsp;|&nbsp; {{ rows|length }} student(s)</p>
+<div style="overflow-x:auto"><table class="rep">
+  <thead><tr>{% for h in header %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for row in rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+  {% empty %}<tr><td colspan="{{ header|length }}">Nothing to show.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% if not header|length > 5 %}<p><em>Only subjects with at least one assessment in this term are shown.</em></p>{% endif %}
+{% else %}<p>Choose a term and a class.</p>{% endif %}
+{% endblock %}

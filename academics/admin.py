@@ -1,6 +1,7 @@
 import csv
 
 from django.contrib import admin, messages
+from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -15,7 +16,7 @@ from core.csv_utils import safe_row
 from core.exceptions import DomainError
 
 from .forms import PromoteForm
-from .models import AcademicYear, ClassSection, Enrollment, GradeLevel, Subject, Term
+from .models import AcademicYear, ClassSection, ClassSubject, Enrollment, GradeLevel, Subject, Term
 from .services import graduate_section, promote_section
 
 
@@ -41,15 +42,65 @@ class SubjectAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmin):
     search_fields = ("code", "name")
 
 
+class ClassSubjectInline(admin.TabularInline):
+    """Subjects of a class and who teaches each (set up once per class)."""
+
+    model = ClassSubject
+    extra = 0
+    verbose_name_plural = "Subjects and teachers"
+    autocomplete_fields = ()
+
+
+@admin.register(Term)
+class TermAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmin):
+    """Lock a term to freeze its grades and attendance; unlock to allow corrections."""
+
+    school_lookup = "academic_year__school"
+    list_display = ("name", "academic_year", "starts_on", "ends_on", "is_locked")
+    list_filter = ("academic_year", "is_locked")
+    actions = ["lock_action", "unlock_action"]
+
+    @admin.action(description="Lock selected terms (freeze grades and attendance)", permissions=["change"])
+    def lock_action(self, request, queryset):
+        for term in queryset:
+            term.lock()
+            AuditLog.record(request.user, "lock_term", term)
+        self.message_user(request, f"{queryset.count()} term(s) locked.", level=messages.SUCCESS)
+
+    @admin.action(description="Unlock selected terms", permissions=["change"])
+    def unlock_action(self, request, queryset):
+        for term in queryset:
+            term.unlock()
+            AuditLog.record(request.user, "unlock_term", term)
+        self.message_user(request, f"{queryset.count()} term(s) unlocked.", level=messages.SUCCESS)
+
+
+@admin.register(ClassSubject)
+class ClassSubjectAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmin):
+    school_lookup = "class_section__academic_year__school"
+    list_display = ("class_section", "subject", "teacher")
+    list_filter = ("class_section__academic_year", "class_section__grade_level", "subject", "teacher")
+    list_select_related = ("class_section__grade_level", "class_section__academic_year", "subject", "teacher")
+
+    def scope_for_teacher(self, qs, user):
+        return qs.filter(teacher=user)
+
+
 @admin.register(ClassSection)
 class ClassSectionAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmin):
     school_lookup = "academic_year__school"
     list_display = ("display_name", "academic_year", "homeroom_teacher", "students", "capacity", "roster_link")
     list_filter = ("academic_year", "grade_level")
-    actions = ["promote_action", "graduate_action"]
+    actions = ["promote_action", "graduate_action", "add_subjects_action"]
+    inlines = [ClassSubjectInline]
 
     def scope_for_teacher(self, qs, user):
-        return qs.filter(homeroom_teacher=user)
+        return qs.filter(Q(homeroom_teacher=user) | Q(class_subjects__teacher=user)).distinct()
+
+    @admin.action(description="Add all school subjects to selected classes", permissions=["change"])
+    def add_subjects_action(self, request, queryset):
+        added = sum(section.add_all_subjects() for section in queryset)
+        self.message_user(request, f"{added} subject(s) added. Open a class to choose each teacher.", level=messages.SUCCESS)
 
     @admin.display(description="Students")
     def students(self, obj):
@@ -167,7 +218,9 @@ class EnrollmentAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmi
     actions = ["withdraw_action", "transfer_action", "graduate_action"]
 
     def scope_for_teacher(self, qs, user):
-        return qs.filter(class_section__homeroom_teacher=user)
+        return qs.filter(
+            Q(class_section__homeroom_teacher=user) | Q(class_section__class_subjects__teacher=user)
+        ).distinct()
 
     fields = ("student", "class_section", "enrolled_on", "notes", "status", "left_on", "academic_year")
 

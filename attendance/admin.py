@@ -28,7 +28,7 @@ def _parse_day(value, default):
 
 def _sections_for_day(user, day):
     return (
-        user.accessible_sections()
+        user.managed_sections()
         .filter(academic_year__starts_on__lte=day, academic_year__ends_on__gte=day)
         .select_related("grade_level", "academic_year", "homeroom_teacher")
         .order_by("grade_level__sort_order", "name")
@@ -113,7 +113,7 @@ class AttendanceRegisterAdmin(SchoolScopedAdminMixin, admin.ModelAdmin):
         user = request.user
         if not (user.has_perm("attendance.add_attendanceregister") and user.has_perm("attendance.change_attendanceregister")):
             raise PermissionDenied
-        section = get_object_or_404(user.accessible_sections().select_related("grade_level", "academic_year"), pk=section_id)
+        section = get_object_or_404(user.managed_sections().select_related("grade_level", "academic_year"), pk=section_id)
         try:
             day = date.fromisoformat(day)
         except ValueError:

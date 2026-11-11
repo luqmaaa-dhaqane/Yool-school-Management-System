@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin, messages
+from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import redirect
@@ -48,7 +49,9 @@ class StudentAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmin):
 
     def scope_for_teacher(self, qs, user):
         return qs.filter(
-            enrollments__status="enrolled", enrollments__class_section__homeroom_teacher=user
+            Q(enrollments__class_section__homeroom_teacher=user)
+            | Q(enrollments__class_section__class_subjects__teacher=user),
+            enrollments__status="enrolled",
         ).distinct()
 
     @admin.display(description="Class")
