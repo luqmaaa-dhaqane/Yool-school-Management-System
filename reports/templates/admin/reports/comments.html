@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% block extrastyle %}{{ block.super }}
+<style>
+  .cm td, .cm th { padding:8px 10px; text-align:left; vertical-align:top; border-bottom:1px solid var(--border-color,#ccc); }
+  .cm textarea { width:100%; min-width:220px; box-sizing:border-box; padding:7px; }
+  .cm small { opacity:.75; }
+  .att-sticky { position:sticky; bottom:0; padding:12px 0; background:var(--body-bg,#fff); border-top:1px solid var(--border-color,#ccc); }
+</style>
+{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+<a href="{% url 'admin:reports_reportcomment_changelist' %}?term={{ term.pk }}">Report cards</a> &rsaquo; Comments</div>{% endblock %}
+{% block content %}
+<h2>{{ section.display_name }} &middot; {{ term.name }}</h2>
+<p>
+  {% if may_teacher %}You can write the <strong>class teacher's comment</strong>.{% else %}The class teacher's comment is read-only for you{% if term.is_locked %} (the term is locked){% endif %}.{% endif %}
+  {% if may_principal %}You can write the <strong>Principal's comment</strong>.{% else %}The Principal's comment is read-only for you.{% endif %}
+  Up to {{ max_comment }} characters each.
+  <a href="{% url 'admin:reports_pdf_class' section.pk term.pk %}" target="_blank">Download class PDF</a>
+</p>
+<form method="post">
+  {% csrf_token %}
+  <div style="overflow-x:auto">
+  <table class="cm">
+    <thead><tr><th>Student</th><th>Term result</th><th>Class teacher's comment</th><th>Principal's comment</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><strong>{{ r.card.student.full_name }}</strong><br><small>{{ r.card.student.student_no }}</small></td>
+        <td>{% if r.card.overall is not None %}{{ r.card.overall }}% {{ r.card.overall_label }}<br><small>position {{ r.card.rank }} of {{ r.card.class_size }}<br>attendance {% if r.card.attendance.rate is not None %}{{ r.card.attendance.rate }}%{% else %}-{% endif %}</small>{% else %}<small>no grades yet</small>{% endif %}</td>
+        <td><textarea name="teacher_{{ r.card.enrollment.pk }}" rows="3" maxlength="{{ max_comment }}" {% if not may_teacher %}readonly{% endif %}>{{ r.teacher }}</textarea></td>
+        <td><textarea name="principal_{{ r.card.enrollment.pk }}" rows="3" maxlength="{{ max_comment }}" {% if not may_principal %}readonly{% endif %}>{{ r.principal }}</textarea></td>
+        <td><a href="{% url 'admin:reports_pdf_student' section.pk term.pk r.card.enrollment.pk %}" target="_blank">PDF</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">No students in this class during this term.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if may_teacher or may_principal %}
+  <div class="att-sticky"><input type="submit" class="default" value="Save comments"></div>
+  {% endif %}
+</form>
+{% endblock %}

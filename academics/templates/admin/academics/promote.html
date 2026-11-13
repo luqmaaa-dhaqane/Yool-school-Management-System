@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% block breadcrumbs %}
 <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
-<a href="{% url 'admin:academics_classsection_changelist' %}">Class sections</a> &rsaquo; Promote</div>
+<a href="{% url 'admin:academics_classsection_changelist' %}">Classes</a> &rsaquo; Promote</div>
 {% endblock %}
 {% block content %}
 <p><strong>{{ section }}</strong> ({{ section.academic_year }}) has <strong>{{ student_count }}</strong> enrolled student(s).

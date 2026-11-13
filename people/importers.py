@@ -11,11 +11,11 @@ from core.exceptions import DomainError
 
 TEMPLATE_HEADER = [
     "first_name", "middle_name", "last_name", "gender", "date_of_birth", "admitted_on",
-    "previous_school", "grade", "section", "guardian_name", "guardian_phone", "guardian_relationship",
+    "previous_school", "grade", "guardian_name", "guardian_phone", "guardian_relationship",
 ]
 TEMPLATE_ROWS = [
-    ["Ahmed", "", "Hassan", "male", "2017-03-14", "2026-09-01", "", "Grade 3", "A", "Hodan Ali", "0630000000", "Mother"],
-    ["Sagal", "Omar", "Yusuf", "female", "2016-11-02", "", "Star Primary", "Grade 4", "A", "Yusuf Abdi", "0631111111", "Father"],
+    ["Ahmed", "", "Hassan", "male", "2017-03-14", "2026-09-01", "", "Grade 3", "Hodan Ali", "0630000000", "Mother"],
+    ["Sagal", "Omar", "Yusuf", "female", "2016-11-02", "", "Star Primary", "Grade 4", "Yusuf Abdi", "0631111111", "Father"],
 ]
 REQUIRED = ("first_name", "last_name", "gender", "date_of_birth")
 ALIASES = {
@@ -143,9 +143,9 @@ class StudentImporter:
             raise ValueError(f"Possible duplicate of {twin.student_no} {twin.full_name}.")
 
         section = None
-        grade_text, section_text = row.get("grade", ""), row.get("section", "")
+        grade_text = row.get("grade", "")  # an old 'section' column, if present, is ignored
         if grade_text:
-            section = self._find_section(grade_text, section_text, ClassSection)
+            section = self._find_section(grade_text, ClassSection)
 
         student = Student(
             school=self.school, first_name=first, middle_name=row.get("middle_name", ""), last_name=last,
@@ -177,21 +177,13 @@ class StudentImporter:
             Enrollment.enroll(student, section, on=enrolled_on)
             report.enrolled += 1
 
-    def _find_section(self, grade_text, section_text, ClassSection):
+    def _find_section(self, grade_text, ClassSection):
         if self.year is None:
             raise ValueError("The school has no current academic year; cannot place students in classes.")
         grade = grade_text.strip()
         if grade.isdigit():
             grade = f"Grade {grade}"
-        sections = ClassSection.objects.filter(
-            academic_year=self.year, grade_level__name__iexact=grade
-        ).select_related("grade_level")
-        if section_text:
-            sections = sections.filter(name__iexact=section_text.strip())
-        found = list(sections[:2])
+        found = ClassSection.objects.filter(academic_year=self.year, grade_level__name__iexact=grade).first()
         if not found:
-            label = f"{grade} {section_text}".strip()
-            raise ValueError(f"No class '{label}' exists in {self.year}.")
-        if len(found) > 1:
-            raise ValueError(f"'{grade}' has several sections; add a 'section' value.")
-        return found[0]
+            raise ValueError(f"No class '{grade}' exists in {self.year}.")
+        return found

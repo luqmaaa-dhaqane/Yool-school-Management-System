@@ -7,7 +7,7 @@
 <p>Upload a CSV with one student per row. Start with <a href="{% url 'admin:people_student_import_template' %}">the template</a>.
 Required columns: <strong>first_name, last_name, gender, date_of_birth</strong>.
 Optional: {{ columns|join:", " }}.</p>
-<p>Dates: YYYY-MM-DD or DD/MM/YYYY. If <em>grade</em> and <em>section</em> are filled, the student is placed in that class
+<p>Dates: YYYY-MM-DD or DD/MM/YYYY. If <em>grade</em> is filled (for example Grade 3), the student is placed in that grade's class
 for the current academic year. Always preview first. If any row has an error, nothing is saved.</p>
 
 <form method="post" enctype="multipart/form-data">

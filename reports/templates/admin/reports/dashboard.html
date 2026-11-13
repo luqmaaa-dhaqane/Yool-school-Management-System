@@ -1,0 +1,46 @@
+{% extends "admin/base_site.html" %}
+{% block extrastyle %}{{ block.super }}
+<style>
+  .rc td, .rc th { padding:8px 10px; text-align:left; }
+  .rc-btn { display:inline-block; padding:7px 12px; border-radius:6px; background:var(--button-bg,#417690); color:#fff !important; text-decoration:none; margin-right:6px; }
+  .rc-lock { padding:2px 8px; border-radius:10px; font-size:12px; color:#fff; }
+  .rc-bar { display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-bottom:14px; }
+</style>
+{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Report cards</div>{% endblock %}
+{% block content %}
+<div class="rc-bar">
+  <form method="get">Term:
+    <select name="term" onchange="this.form.submit()">
+      {% for t in terms %}<option value="{{ t.pk }}" {% if t.pk == term.pk %}selected{% endif %}>{{ t.academic_year }} - {{ t.name }}</option>{% endfor %}
+    </select>
+    <noscript><input type="submit" value="Go"></noscript>
+  </form>
+  {% if term %}{% if term.is_locked %}<span class="rc-lock" style="background:#1f7a3d">Term locked: final</span>
+  {% else %}<span class="rc-lock" style="background:#b86e00">Term open: report cards are marked PROVISIONAL</span>{% endif %}{% endif %}
+</div>
+{% if term %}
+<p>Report cards show each subject's term grade, the class position, attendance for the term and the comments below.
+Lock the term (Terms &rsaquo; Lock selected terms) before printing the final copies.</p>
+<table class="rc">
+  <thead><tr><th>Class</th><th>Class teacher</th><th>Students</th><th>Teacher comments</th><th>Principal comments</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td><strong>{{ r.section.display_name }}</strong></td>
+      <td>{{ r.section.homeroom_teacher|default:"-" }}</td>
+      <td>{{ r.students }}</td>
+      <td>{{ r.teacher_comments }} / {{ r.students }}</td>
+      <td>{{ r.principal_comments }} / {{ r.students }}</td>
+      <td>
+        <a class="rc-btn" href="{% url 'admin:reports_comments' r.section.pk term.pk %}">Comments</a>
+        <a class="rc-btn" href="{% url 'admin:reports_pdf_class' r.section.pk term.pk %}" target="_blank">Class PDF</a>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6">No classes to show. Report cards are for the class where you are the class teacher; the Principal and Registrar see every class.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}<p>No terms yet. Add terms to the academic year first.</p>{% endif %}
+{% endblock %}

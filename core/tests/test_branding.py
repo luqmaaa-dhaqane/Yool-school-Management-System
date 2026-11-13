@@ -92,7 +92,7 @@ class FinishUpdateTests(TestCase):
         school = School.objects.create(name="Old School")
         year = AcademicYear.objects.create(school=school, name="Y", starts_on=date(2026, 9, 1), ends_on=date(2027, 6, 30), is_current=True)
         grade = GradeLevel.objects.create(school=school, name="Grade 1", sort_order=1)
-        ClassSection.objects.create(academic_year=year, grade_level=grade, name="A")
+        ClassSection.objects.create(academic_year=year, grade_level=grade)
         Subject.objects.create(school=school, code="MTH", name="Mathematics")
         Subject.objects.create(school=school, code="ENG", name="English")
         call_command("finish_update", stdout=StringIO())

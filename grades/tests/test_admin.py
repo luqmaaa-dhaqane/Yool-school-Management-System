@@ -225,7 +225,7 @@ class SubjectTeacherVisibilityTests(AdminPageBase):
         self.login(self.pe_teacher)
         page = self.client.get("/admin/attendance/attendanceregister/").content.decode()
         self.assertNotIn("Take attendance", page)
-        self.assertNotIn("Grade 3 A", page)
+        self.assertNotIn("Grade 3", page)
 
     def test_subject_teacher_cannot_open_take_attendance_page(self):
         self.login(self.pe_teacher)
@@ -234,4 +234,4 @@ class SubjectTeacherVisibilityTests(AdminPageBase):
 
     def test_subject_teacher_sees_the_class_section_and_roster(self):
         self.login(self.pe_teacher)
-        self.assertIn("Grade 3 A", self.client.get("/admin/academics/classsection/").content.decode())
+        self.assertIn("Grade 3", self.client.get("/admin/academics/classsection/").content.decode())

@@ -89,7 +89,7 @@ class ClassSubjectAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAd
 @admin.register(ClassSection)
 class ClassSectionAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmin):
     school_lookup = "academic_year__school"
-    list_display = ("display_name", "academic_year", "homeroom_teacher", "students", "capacity", "roster_link")
+    list_display = ("class_name", "academic_year", "homeroom_teacher", "students", "capacity", "roster_link")
     list_filter = ("academic_year", "grade_level")
     actions = ["promote_action", "graduate_action", "add_subjects_action"]
     inlines = [ClassSubjectInline]
@@ -101,6 +101,10 @@ class ClassSectionAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAd
     def add_subjects_action(self, request, queryset):
         added = sum(section.add_all_subjects() for section in queryset)
         self.message_user(request, f"{added} subject(s) added. Open a class to choose each teacher.", level=messages.SUCCESS)
+
+    @admin.display(description="Class", ordering="grade_level__sort_order")
+    def class_name(self, obj):
+        return obj.display_name
 
     @admin.display(description="Students")
     def students(self, obj):

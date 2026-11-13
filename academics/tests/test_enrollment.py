@@ -17,10 +17,10 @@ class Base(TestCase):
         self.y2 = AcademicYear.objects.create(
             school=self.school, name="2027/28", starts_on=date(2027, 9, 1), ends_on=date(2028, 6, 30))
         self.g = {n: GradeLevel.objects.create(school=self.school, name=f"Grade {n}", sort_order=n) for n in (1, 2, 3)}
-        self.s1a = ClassSection.objects.create(academic_year=self.y1, grade_level=self.g[1], name="A", capacity=2)
-        self.s1b = ClassSection.objects.create(academic_year=self.y1, grade_level=self.g[1], name="B")
-        self.s2a_next = ClassSection.objects.create(academic_year=self.y2, grade_level=self.g[2], name="A")
-        self.s1a_next = ClassSection.objects.create(academic_year=self.y2, grade_level=self.g[1], name="A")
+        self.s1a = ClassSection.objects.create(academic_year=self.y1, grade_level=self.g[1], capacity=2)
+        self.s1b = ClassSection.objects.create(academic_year=self.y1, grade_level=self.g[2])  # another class, same year
+        self.s2a_next = ClassSection.objects.create(academic_year=self.y2, grade_level=self.g[2])
+        self.s1a_next = ClassSection.objects.create(academic_year=self.y2, grade_level=self.g[1])
 
     def student(self, first="A", **kw):
         data = dict(first_name=first, last_name="Test", gender="male", date_of_birth=date(2019, 1, 1))
@@ -156,7 +156,7 @@ class PromotionTests(Base):
         self.assertEqual(b.current_class(), self.s1a_next)
 
     def test_promotion_is_all_or_nothing(self):
-        small = ClassSection.objects.create(academic_year=self.y2, grade_level=self.g[2], name="B", capacity=1)
+        small = ClassSection.objects.create(academic_year=self.y2, grade_level=self.g[3], capacity=1)
         a, b = self.student("A"), self.student("B")
         Enrollment.enroll(a, self.s1a)
         Enrollment.enroll(b, self.s1a)

@@ -29,6 +29,7 @@ ROLE_PERMISSIONS = {
         "grades": (
             P("assessmenttype", *EDIT) + P("gradeband", *EDIT) + P("assessment", *CRUD) + P("gradeentry", *EDIT)
         ),
+        "reports": P("reportcomment", *EDIT),
         "core": P("school", "view", "change"),
         "audit": P("auditlog", *VIEW),
         "accounts": P("user", *VIEW),
@@ -45,6 +46,7 @@ ROLE_PERMISSIONS = {
         "grades": (
             P("assessmenttype", *VIEW) + P("gradeband", *VIEW) + P("assessment", *VIEW) + P("gradeentry", *VIEW)
         ),
+        "reports": P("reportcomment", *VIEW),
         "attendance": P("attendanceregister", *EDIT) + P("attendancerecord", *VIEW) + P("holiday", *VIEW),
     },
     Role.TEACHER: {
@@ -57,6 +59,7 @@ ROLE_PERMISSIONS = {
         "grades": (
             P("assessmenttype", *VIEW) + P("gradeband", *VIEW) + P("assessment", *CRUD) + P("gradeentry", *EDIT)
         ),
+        "reports": P("reportcomment", *EDIT),
         "attendance": P("attendanceregister", *EDIT) + P("attendancerecord", *VIEW) + P("holiday", *VIEW),
     },
 }

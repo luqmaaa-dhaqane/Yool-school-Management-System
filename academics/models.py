@@ -121,7 +121,6 @@ class GradeLevel(BaseModel):
 class ClassSection(BaseModel):
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.PROTECT, related_name="sections")
     grade_level = models.ForeignKey(GradeLevel, on_delete=models.PROTECT, related_name="sections")
-    name = models.CharField(max_length=20, help_text="For example A, B, Blue.")
     homeroom_teacher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -133,11 +132,12 @@ class ClassSection(BaseModel):
     capacity = models.PositiveSmallIntegerField(null=True, blank=True)
 
     class Meta:
-        ordering = ["academic_year", "grade_level__sort_order", "name"]
+        verbose_name = "class"
+        verbose_name_plural = "classes"
+        ordering = ["academic_year", "grade_level__sort_order"]
         constraints = [
-            models.UniqueConstraint(
-                fields=["academic_year", "grade_level", "name"], name="uniq_section_per_year_grade"
-            ),
+            # One class per grade per academic year: "Grade 1" is a single class.
+            models.UniqueConstraint(fields=["academic_year", "grade_level"], name="one_class_per_grade_per_year"),
         ]
 
     def __str__(self):
@@ -145,7 +145,7 @@ class ClassSection(BaseModel):
 
     @property
     def display_name(self):
-        return f"{self.grade_level.name} {self.name}"
+        return self.grade_level.name
 
     # --- roster and capacity ---------------------------------------------
     def active_enrollments(self):

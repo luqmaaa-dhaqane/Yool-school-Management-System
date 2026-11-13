@@ -24,11 +24,12 @@ class Base(TestCase):
             school=self.school, name="Y", starts_on=date(2026, 9, 1), ends_on=date(2027, 6, 30), is_current=True)
         self.term = Term.objects.create(academic_year=self.year, name="Term 1", starts_on=date(2026, 9, 1), ends_on=date(2026, 12, 15))
         grade = GradeLevel.objects.create(school=self.school, name="Grade 3", sort_order=3)
+        grade4 = GradeLevel.objects.create(school=self.school, name="Grade 4", sort_order=4)
         self.teacher = User.objects.create_user("t1", password="x-long-test-password-1", role=Role.TEACHER, school=self.school)
         self.other_teacher = User.objects.create_user("t2", password="x-long-test-password-1", role=Role.TEACHER, school=self.school)
         self.registrar = User.objects.create_user("r1", password="x-long-test-password-1", role=Role.REGISTRAR, school=self.school)
-        self.section = ClassSection.objects.create(academic_year=self.year, grade_level=grade, name="A", homeroom_teacher=self.teacher)
-        self.other_section = ClassSection.objects.create(academic_year=self.year, grade_level=grade, name="B", homeroom_teacher=self.other_teacher)
+        self.section = ClassSection.objects.create(academic_year=self.year, grade_level=grade, homeroom_teacher=self.teacher)
+        self.other_section = ClassSection.objects.create(academic_year=self.year, grade_level=grade4, homeroom_teacher=self.other_teacher)
         self.enrollments = []
         for i, name in enumerate(["Abdi", "Bilal", "Cali"]):
             s = Student.objects.create(school=self.school, first_name=name, last_name="T", gender="male", date_of_birth=date(2017, 1, 1))
@@ -174,7 +175,7 @@ class ReportTests(Base):
 
     def test_class_day_rows_show_taken_and_not_taken(self):
         rows = class_day_rows([self.section, self.other_section], date(2026, 10, 5))
-        by_name = {r["section"].name: r for r in rows}
-        self.assertIsNotNone(by_name["A"]["register"])
-        self.assertEqual(by_name["A"]["summary"].absent, 1)
-        self.assertIsNone(by_name["B"]["register"])
+        by_name = {r["section"].display_name: r for r in rows}
+        self.assertIsNotNone(by_name["Grade 3"]["register"])
+        self.assertEqual(by_name["Grade 3"]["summary"].absent, 1)
+        self.assertIsNone(by_name["Grade 4"]["register"])

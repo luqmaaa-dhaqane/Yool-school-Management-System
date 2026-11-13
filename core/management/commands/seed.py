@@ -41,7 +41,6 @@ class Command(BaseCommand):
         parser.add_argument("--admin-user", default="admin")
         parser.add_argument("--admin-password", default=None, help="Random if omitted.")
         parser.add_argument("--grades", type=int, default=12, help="Number of grade levels.")
-        parser.add_argument("--sections", default="A", help="Comma-separated section names per grade, e.g. A,B.")
         parser.add_argument("--demo", action="store_true", help="Also create fake demo students.")
 
     @transaction.atomic
@@ -76,10 +75,7 @@ class Command(BaseCommand):
 
         current_year = AcademicYear.objects.filter(school=school, is_current=True).first() or year
         for grade in GradeLevel.objects.filter(school=school):
-            for section_name in [x.strip() for x in opts["sections"].split(",") if x.strip()]:
-                ClassSection.objects.get_or_create(
-                    academic_year=current_year, grade_level=grade, name=section_name
-                )
+            ClassSection.objects.get_or_create(academic_year=current_year, grade_level=grade)
 
         for code, name, name_so in DEFAULT_SUBJECTS:
             Subject.objects.get_or_create(school=school, code=code, defaults={"name": name, "name_so": name_so})
@@ -108,10 +104,10 @@ class Command(BaseCommand):
             for first, last, gender in DEMO_STUDENTS:
                 student = Student.objects.create(
                     school=school, first_name=first, last_name=last, gender=gender,
-                    date_of_birth=date(today.year - 8, 1, 1), admitted_on=today,
+                    date_of_birth=date(today.year - 8, 1, 1), admitted_on=current_year.starts_on,
                 )
                 student.add_guardian(guardian, "Parent", is_primary=True)
-                Enrollment.enroll(student, demo_section)
+                Enrollment.enroll(student, demo_section, on=current_year.starts_on)  # enrolled from the start of the year
             self.stdout.write("Demo students created and placed in Grade 3.")
 
         if opts["demo"] and not User.objects.filter(username="teacher").exists():
@@ -121,14 +117,14 @@ class Command(BaseCommand):
                 first_name="Demo", last_name="Teacher",
             )
             ClassSection.objects.filter(
-                academic_year=current_year, grade_level__name="Grade 3", name="A"
+                academic_year=current_year, grade_level__name="Grade 3"
             ).update(homeroom_teacher=teacher)
             ClassSubject.objects.filter(
                 class_section__academic_year=current_year, class_section__grade_level__name="Grade 3",
-                class_section__name="A", subject__code__in=["MTH", "ENG"],
+                subject__code__in=["MTH", "ENG"],
             ).update(teacher=teacher)
             self.stdout.write(self.style.WARNING(
-                f"Created demo teacher 'teacher' (Grade 3 A, teaches Mathematics and English) with password: {password}"
+                f"Created demo teacher 'teacher' (Grade 3, teaches Mathematics and English) with password: {password}"
             ))
 
         if opts["demo"]:
@@ -140,7 +136,7 @@ class Command(BaseCommand):
         """A few sample assessments with scores so the gradebook has something to show."""
         cs = ClassSubject.objects.filter(
             class_section__academic_year=year, class_section__grade_level__name="Grade 3",
-            class_section__name="A", subject__code="MTH",
+            subject__code="MTH",
         ).select_related("teacher", "class_section").first()
         today = date.today()
         term = year.term_on(today) or year.terms.filter(starts_on__lte=today).order_by("-starts_on").first()
@@ -156,4 +152,4 @@ class Command(BaseCommand):
             )
             scores = {e.pk: Decimal(rng.randint(int(maximum * 0.45), maximum)) for e in enrollments}
             assessment.record_scores(scores, cs.teacher)
-        self.stdout.write("Demo grades created (Grade 3 A, Mathematics).")
+        self.stdout.write("Demo grades created (Grade 3, Mathematics).")

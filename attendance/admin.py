@@ -31,7 +31,7 @@ def _sections_for_day(user, day):
         user.managed_sections()
         .filter(academic_year__starts_on__lte=day, academic_year__ends_on__gte=day)
         .select_related("grade_level", "academic_year", "homeroom_teacher")
-        .order_by("grade_level__sort_order", "name")
+        .order_by("grade_level__sort_order")
     )
 
 

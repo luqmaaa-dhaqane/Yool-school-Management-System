@@ -34,11 +34,12 @@ class Base(TestCase):
             school=cls.school, name="Y", starts_on=TODAY - timedelta(days=60), ends_on=TODAY + timedelta(days=200), is_current=True)
         cls.term = Term.objects.create(academic_year=cls.year, name="T1", starts_on=TODAY - timedelta(days=60), ends_on=TODAY + timedelta(days=60))
         grade = GradeLevel.objects.create(school=cls.school, name="Grade 3", sort_order=3)
+        grade4 = GradeLevel.objects.create(school=cls.school, name="Grade 4", sort_order=4)
         mk = lambda name, role: User.objects.create_user(name, password="x-long-test-password-1", role=role, school=cls.school)
         cls.teacher, cls.other_teacher = mk("t1", Role.TEACHER), mk("t2", Role.TEACHER)
         cls.registrar, cls.principal = mk("r1", Role.REGISTRAR), mk("p1", Role.PRINCIPAL)
-        cls.sec_a = ClassSection.objects.create(academic_year=cls.year, grade_level=grade, name="A", homeroom_teacher=cls.teacher)
-        cls.sec_b = ClassSection.objects.create(academic_year=cls.year, grade_level=grade, name="B", homeroom_teacher=cls.other_teacher)
+        cls.sec_a = ClassSection.objects.create(academic_year=cls.year, grade_level=grade, homeroom_teacher=cls.teacher)
+        cls.sec_b = ClassSection.objects.create(academic_year=cls.year, grade_level=grade4, homeroom_teacher=cls.other_teacher)
         cls.mine, cls.theirs = [], []
         guardian = Guardian.objects.create(school=cls.school, first_name="Mum", last_name="A", phone="0630000999")
         for name, sec, bucket in [("Abdi", cls.sec_a, cls.mine), ("Bilal", cls.sec_a, cls.mine), ("Zaid", cls.sec_b, cls.theirs)]:
@@ -68,9 +69,9 @@ class TeacherScopingTests(Base):
 
     def test_teacher_sees_only_own_class_and_enrollments_and_guardians(self):
         self.login(self.teacher)
-        sections = self.client.get("/admin/academics/classsection/").content.decode()
-        self.assertIn("Grade 3 A", sections)
-        self.assertNotIn("Grade 3 B", sections)
+        response = self.client.get("/admin/academics/classsection/")
+        self.assertEqual(response.context["cl"].result_count, 1)  # only their own class is listed
+        self.assertIn("Grade 3", response.content.decode())
         enrollments = self.client.get("/admin/academics/enrollment/").content.decode()
         self.assertIn("Abdi", enrollments)
         self.assertNotIn("Zaid", enrollments)
@@ -93,14 +94,14 @@ class DashboardAndTakeTests(Base):
     def test_dashboard_lists_only_own_class_for_teacher(self):
         self.login(self.teacher)
         page = self.client.get("/admin/attendance/attendanceregister/").content.decode()
-        self.assertIn("Grade 3 A", page)
-        self.assertNotIn("Grade 3 B", page)
+        self.assertIn("Grade 3", page)
+        self.assertNotIn("Grade 4", page)
 
     def test_registrar_dashboard_lists_all_classes(self):
         self.login(self.registrar)
         page = self.client.get("/admin/attendance/attendanceregister/").content.decode()
-        self.assertIn("Grade 3 A", page)
-        self.assertIn("Grade 3 B", page)
+        self.assertIn("Grade 3", page)
+        self.assertIn("Grade 4", page)
 
     def test_take_page_defaults_to_present(self):
         self.login(self.teacher)
@@ -165,14 +166,14 @@ class ReportPageTests(Base):
     def test_daily_report(self):
         self.login(self.registrar)
         page = self.client.get(f"/admin/attendance/attendanceregister/reports/daily/?date={self.day.isoformat()}").content.decode()
-        self.assertIn("Grade 3 A", page)
+        self.assertIn("Grade 3", page)
         self.assertIn("NOT TAKEN", page)  # class B has no register
 
     def test_daily_report_csv(self):
         self.login(self.registrar)
         response = self.client.get(f"/admin/attendance/attendanceregister/reports/daily/?date={self.day.isoformat()}&format=csv")
         self.assertEqual(response["Content-Type"], "text/csv")
-        self.assertIn("Grade 3 A", response.content.decode())
+        self.assertIn("Grade 3", response.content.decode())
 
     def test_student_report_needs_class_then_lists_students(self):
         self.login(self.teacher)

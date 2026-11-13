@@ -30,7 +30,7 @@ class Base(TestCase):
         mk = lambda name, role: User.objects.create_user(name, password="x-long-test-password-1", role=role, school=self.school)
         self.homeroom, self.maths_teacher, self.pe_teacher = mk("home", Role.TEACHER), mk("maths", Role.TEACHER), mk("pe", Role.TEACHER)
         self.principal, self.registrar = mk("prin", Role.PRINCIPAL), mk("reg", Role.REGISTRAR)
-        self.section = ClassSection.objects.create(academic_year=self.year, grade_level=grade, name="A", homeroom_teacher=self.homeroom)
+        self.section = ClassSection.objects.create(academic_year=self.year, grade_level=grade, homeroom_teacher=self.homeroom)
         self.maths = ClassSubject.objects.create(class_section=self.section, subject=Subject.objects.create(school=self.school, code="MTH", name="Mathematics"), teacher=self.maths_teacher)
         self.pe = ClassSubject.objects.create(class_section=self.section, subject=Subject.objects.create(school=self.school, code="PE", name="Physical Education"), teacher=self.pe_teacher)
         self.quiz = AssessmentType.objects.create(school=self.school, name="Quiz", weight_percent=20)
@@ -149,7 +149,7 @@ class ScoreRuleTests(Base):
 
     def test_unknown_student_rejected(self):
         outsider = Student.objects.create(school=self.school, first_name="O", last_name="X", gender="male", date_of_birth=date(2017, 1, 1))
-        other_class = ClassSection.objects.create(academic_year=self.year, grade_level=self.section.grade_level, name="B")
+        other_class = ClassSection.objects.create(academic_year=self.year, grade_level=GradeLevel.objects.create(school=self.school, name="Grade 4", sort_order=4))
         e = Enrollment.enroll(outsider, other_class, on=date(2026, 9, 1))
         with self.assertRaisesMessage(DomainError, "do not belong"):
             self.quiz1.record_scores({e.pk: 5}, self.maths_teacher)
@@ -236,7 +236,7 @@ class ClassResultsTests(Base):
 class ClassSubjectTests(Base):
     def test_add_all_subjects_is_idempotent(self):
         Subject.objects.create(school=self.school, code="ART", name="Art")
-        other = ClassSection.objects.create(academic_year=self.year, grade_level=self.section.grade_level, name="B")
+        other = ClassSection.objects.create(academic_year=self.year, grade_level=GradeLevel.objects.create(school=self.school, name="Grade 4", sort_order=4))
         self.assertEqual(other.add_all_subjects(), 3)
         self.assertEqual(other.add_all_subjects(), 0)
         self.assertEqual(other.class_subjects.count(), 3)

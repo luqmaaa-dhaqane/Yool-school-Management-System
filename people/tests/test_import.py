@@ -16,7 +16,7 @@ class ImporterTests(TestCase):
         self.year = AcademicYear.objects.create(
             school=self.school, name="Y", starts_on=date(2026, 9, 1), ends_on=date(2027, 6, 30), is_current=True)
         grade = GradeLevel.objects.create(school=self.school, name="Grade 3", sort_order=3)
-        self.section = ClassSection.objects.create(academic_year=self.year, grade_level=grade, name="A", capacity=2)
+        self.section = ClassSection.objects.create(academic_year=self.year, grade_level=grade, capacity=2)
 
     def run_csv(self, body, dry_run=False, header=HEADER):
         return StudentImporter(self.school).run((header + body).encode("utf-8"), dry_run=dry_run)

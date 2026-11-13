@@ -1,4 +1,4 @@
-# Yool International School Student Management System (Phase 3)
+# Yool International School Student Management System (Phase 4)
 
 Django + PostgreSQL. Object-oriented domain design: business rules live on the
 model classes (`Student.withdraw()`, `AcademicYear.lock()`), views stay thin.
@@ -42,6 +42,7 @@ Roles: Super Admin, Principal, Registrar, Teacher. Guardians are plain contact r
 | `accounts` | `User` + `Role`; one permission group per role (`permissions.py`) |
 | `audit` | Append-only audit log of admin changes, promotions, imports |
 | `people` | `Student` (ID `YYYY-NNNN`, status rules), `Guardian` contacts, **CSV import** |
+| `reports` | **Report cards (PDF)**: results per subject, position, attendance, class teacher and Principal comments; one student or the whole class |
 | `grades` | **Weighted assessments** (quiz / midterm / exam), grade entry grid, term grades with letter bands, ranking, class mark sheet, term locking |
 | `attendance` | **Daily class registers** (Present/Absent/Late/Excused, reasons), holidays, daily summary, attendance by student, low-attendance list, CSV exports |
 | `academics` | Years, terms, grades, sections, subjects, **`Enrollment`** (capacity, one class per year, withdraw, transfer, graduate, promote, repeat), year-end promotion, class roster |
@@ -50,14 +51,14 @@ Roles: Super Admin, Principal, Registrar, Teacher. Guardians are plain contact r
 
 - **Place a student in a class:** Students > open a student > "Class enrollments", or Enrollments > Add.
 - **Import a list:** Students > "Import from CSV". Download the template, fill it, preview, then save.
-- **Class list:** Class sections > "View / print" (also CSV).
-- **Year end:** Class sections > tick one class > "Promote this class to next year...".
+- **Class list:** Classes > "View / print" (also CSV).
+- **Year end:** Classes > tick one class > "Promote this class to next year...".
 - **Leaving:** Enrollments > tick students > "Withdraw" / "Transferred out" / "Graduated".
 - **Take attendance:** Attendance > "Take attendance" next to the class. Everyone starts as Present; mark the
   exceptions (with an optional reason) and save. Open the same page again to correct it.
 - **Reports:** Attendance > Daily summary / Attendance by student / Low attendance list (all have CSV and print).
 - **Holidays:** Attendance > Holidays. Fridays are non-teaching by default (`SCHOOL_NON_TEACHING_WEEKDAYS` in `.env`).
-- **Subjects and teachers:** Class sections > open a class > "Subjects and teachers" (or use the action "Add all
+- **Subjects and teachers:** Classes > open a class > "Subjects and teachers" (or use the action "Add all
   school subjects to selected classes", then choose each teacher). PE and Arabic teachers who are not a homeroom
   teacher see only the classes they teach and enter grades; they do not take attendance.
 - **Grades:** Gradebook > pick the term > "Enter grades". Add an assessment first (Quiz 1, Midterm...). An empty
@@ -65,6 +66,12 @@ Roles: Super Admin, Principal, Registrar, Teacher. Guardians are plain contact r
   (for example no exam yet) are left out and the other weights rescaled. Letter bands: Grade bands.
 - **Lock a term:** Terms > tick the term > "Lock selected terms". Locked terms freeze grades and attendance.
 - **Mark sheet:** Gradebook > Class mark sheet (all subjects, overall average, rank, CSV).
+- **Classes:** a grade is one class ("Grade 1", "Grade 2", ...). There are no A/B sections; each grade has exactly
+  one class per academic year. CSV imports use the `grade` column only (an old `section` column is ignored).
+- **Report cards:** Report cards > pick the term > "Comments" to write the class teacher's and the Principal's comments,
+  then "Class PDF" for the whole class (or "PDF" beside one student on the Comments page). Until the term is locked
+  every card carries a PROVISIONAL warning; lock the term first for the final copies. The class teacher writes
+  the teacher comment while the term is open; only the Principal writes the Principal's comment.
 - **Teachers** only see their own class (the class where they are set as *Homeroom teacher*), its students,
   guardians and registers. They can correct attendance up to 7 days back (`ATTENDANCE_EDIT_DAYS`);
   Principal and Registrar have no limit. A locked term cannot be changed by anyone.
@@ -100,9 +107,9 @@ python manage.py finish_update    # refreshes permissions and adds any missing s
 Name, subtitle and tab title come from `SITE_NAME`, `SITE_SUBTITLE`, `SITE_SHORT_NAME` in `.env`.
 Put the logo at `core/static/core/logo.jpg`. A Show/Hide button appears on every password box.
 
-## Next (Phase 4)
+## Next (Phase 5)
 
-Report cards (PDF) with grades, attendance summary and comments.
+Launch: server, HTTPS, Postgres, backups, monitoring, email, CI/CD, pilot and training.
 
 ## Before going live
 

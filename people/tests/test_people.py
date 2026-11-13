@@ -132,7 +132,7 @@ class AdminBehaviourTests(TestCase):
         year = AcademicYear.objects.create(school=self.school, name="Y", starts_on=date(2026, 9, 1),
                                            ends_on=date(2027, 6, 30), is_current=True)
         grade = GradeLevel.objects.create(school=self.school, name="G1", sort_order=1)
-        section = ClassSection.objects.create(academic_year=year, grade_level=grade, name="A", homeroom_teacher=teacher)
+        section = ClassSection.objects.create(academic_year=year, grade_level=grade, homeroom_teacher=teacher)
         Enrollment.enroll(student, section)
         response = self.client.get(f"/admin/people/student/{student.pk}/change/")
         self.assertEqual(response.status_code, 200)

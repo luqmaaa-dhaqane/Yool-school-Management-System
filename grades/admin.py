@@ -10,7 +10,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 
-from academics.models import AcademicYear, ClassSection, ClassSubject, Term
+from academics.models import ClassSection, ClassSubject
+from academics.selectors import default_term, terms_for
 from audit.mixins import AuditedAdminMixin
 from core.admin_mixins import SchoolScopedAdminMixin
 from core.csv_utils import safe_row
@@ -23,21 +24,7 @@ from .services import class_results
 
 
 # --- helpers -------------------------------------------------------------
-def _terms_for(user):
-    qs = Term.objects.select_related("academic_year").order_by("-starts_on")
-    if user.is_superuser or not user.school_id:
-        return qs if user.is_superuser else qs.none()
-    return qs.filter(academic_year__school_id=user.school_id)
-
-
-def _default_term(user):
-    today = date.today()
-    terms = list(_terms_for(user))
-    for t in terms:
-        if t.contains(today):
-            return t
-    started = [t for t in terms if t.starts_on <= today]
-    return started[0] if started else (terms[0] if terms else None)
+_terms_for, _default_term = terms_for, default_term
 
 
 def _class_subjects_for(user, term):
@@ -53,7 +40,7 @@ def _class_subjects_for(user, term):
         qs = qs.filter(teacher=user)
     else:
         return qs.none()
-    return qs.order_by("class_section__grade_level__sort_order", "class_section__name", "subject__name")
+    return qs.order_by("class_section__grade_level__sort_order", "subject__name")
 
 
 def _fmt(value):

@@ -23,8 +23,8 @@ class AdminPageTests(TestCase):
             school=cls.school, name="Y2", starts_on=date(2027, 9, 1), ends_on=date(2028, 6, 30))
         cls.g1 = GradeLevel.objects.create(school=cls.school, name="Grade 1", sort_order=1)
         cls.g2 = GradeLevel.objects.create(school=cls.school, name="Grade 2", sort_order=2)
-        cls.sec = ClassSection.objects.create(academic_year=cls.y1, grade_level=cls.g1, name="A")
-        cls.next = ClassSection.objects.create(academic_year=cls.y2, grade_level=cls.g2, name="A")
+        cls.sec = ClassSection.objects.create(academic_year=cls.y1, grade_level=cls.g1)
+        cls.next = ClassSection.objects.create(academic_year=cls.y2, grade_level=cls.g2)
         cls.student = Student.objects.create(
             school=cls.school, first_name="Amina", last_name="Ali", gender="female", date_of_birth=date(2019, 1, 1))
         Enrollment.enroll(cls.student, cls.sec)
@@ -90,4 +90,4 @@ class AdminPageTests(TestCase):
 
     def test_student_list_shows_current_class(self):
         self.login(Role.REGISTRAR)
-        self.assertContains(self.client.get("/admin/people/student/"), "Grade 1 A")
+        self.assertContains(self.client.get("/admin/people/student/"), "Grade 1")
