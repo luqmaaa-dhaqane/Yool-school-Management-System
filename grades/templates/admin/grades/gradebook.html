@@ -1,46 +1,42 @@
 {% extends "admin/base_site.html" %}
-{% block extrastyle %}{{ block.super }}
-<style>
-  .gb td, .gb th { padding:8px 10px; text-align:left; }
-  .gb-btn { display:inline-block; padding:7px 12px; border-radius:6px; background:var(--button-bg,#417690); color:#fff !important; text-decoration:none; margin-right:6px; }
-  .gb-lock { background:#b3261e; color:#fff; padding:2px 8px; border-radius:10px; font-size:12px; }
-  .gb-bar { display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-bottom:14px; }
-</style>
-{% endblock %}
 {% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Gradebook</div>{% endblock %}
+{% block content_title %}{% endblock %}
 {% block content %}
-<div class="gb-bar">
-  <form method="get">Term:
-    <select name="term" onchange="this.form.submit()">
-      {% for t in terms %}<option value="{{ t.pk }}" {% if t.pk == term.pk %}selected{% endif %}>{{ t.academic_year }} - {{ t.name }}</option>{% endfor %}
-    </select>
-    <noscript><input type="submit" value="Go"></noscript>
-  </form>
-  {% if term.is_locked %}<span class="gb-lock">Term locked</span>{% endif %}
-  <a href="{% url 'admin:grades_marksheet' %}">Class mark sheet</a>
+<div class="pagehead">
+  <div><h1>Gradebook</h1><p class="sub">{% if term %}{{ term.academic_year }}, {{ term.name }} {% if term.is_locked %}<span class="badge no">Term locked</span>{% else %}<span class="badge warn">Term open</span>{% endif %}{% endif %}</p></div>
+  <div class="filters no-print">
+    <form method="get" class="filters">Term:
+      <select name="term" onchange="this.form.submit()">
+        {% for t in terms %}<option value="{{ t.pk }}" {% if t.pk == term.pk %}selected{% endif %}>{{ t.academic_year }} - {{ t.name }}</option>{% endfor %}
+      </select>
+      <noscript><input type="submit" class="btn alt" value="Go"></noscript>
+    </form>
+    <a class="btn alt" href="{% url 'admin:grades_marksheet' %}">Class mark sheet</a>
+  </div>
 </div>
 {% if not term %}
   <p>No terms yet. Add terms to the academic year first.</p>
 {% else %}
-<table class="gb">
-  <thead><tr><th>Class</th><th>Subject</th><th>Teacher</th><th>Assessments</th><th>Scores entered</th><th></th></tr></thead>
+<section class="card"><div class="xscroll">
+<table class="tbl">
+  <thead><tr><th>Class</th><th>Subject</th><th>Teacher</th><th class="num">Assessments</th><th class="num">Scores entered</th><th></th></tr></thead>
   <tbody>
   {% for r in rows %}
     <tr>
       <td>{{ r.cs.class_section.display_name }}</td>
-      <td><strong>{{ r.cs.subject }}</strong></td>
+      <td><b>{{ r.cs.subject }}</b></td>
       <td>{{ r.cs.teacher|default:"-" }}</td>
-      <td>{{ r.assessments }}</td>
-      <td>{% if r.expected %}{{ r.entered }} / {{ r.expected }}{% else %}-{% endif %}</td>
+      <td class="num">{{ r.assessments }}</td>
+      <td class="num">{% if r.expected %}{{ r.entered }} / {{ r.expected }}{% else %}-{% endif %}</td>
       <td>
-        <a class="gb-btn" href="{% url 'admin:grades_grid' r.cs.pk term.pk %}">{% if r.can_grade and not term.is_locked %}Enter grades{% else %}View{% endif %}</a>
-        {% if can_add and r.can_grade and not term.is_locked %}<a href="{% url 'admin:grades_assessment_add' %}?class_subject={{ r.cs.pk }}&term={{ term.pk }}">Add assessment</a>{% endif %}
+        <a class="btn" href="{% url 'admin:grades_grid' r.cs.pk term.pk %}">{% if r.can_grade and not term.is_locked %}Enter grades{% else %}View{% endif %}</a>
+        {% if can_add and r.can_grade and not term.is_locked %}<a class="btn alt" href="{% url 'admin:grades_assessment_add' %}?class_subject={{ r.cs.pk }}&term={{ term.pk }}">Add assessment</a>{% endif %}
       </td>
     </tr>
   {% empty %}
     <tr><td colspan="6">No subject classes to show. A subject class is created under Classes (add the subjects and choose each teacher).</td></tr>
   {% endfor %}
   </tbody>
-</table>
+</table></div></section>
 {% endif %}
 {% endblock %}

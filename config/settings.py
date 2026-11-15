@@ -24,7 +24,7 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    "core.admin_config.YoolAdminConfig",  # django.contrib.admin with our dashboard
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -68,6 +68,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.branding",
+                "core.context_processors.navigation",
             ],
         },
     },
@@ -150,6 +151,7 @@ AXES_FAILURE_LIMIT = env.int("LOGIN_FAILURE_LIMIT", default=5)
 AXES_COOLOFF_TIME = timedelta(minutes=env.int("LOGIN_LOCKOUT_MINUTES", default=15))
 AXES_LOCKOUT_PARAMETERS = [["ip_address", "username"]]
 AXES_RESET_ON_SUCCESS = True
+AXES_LOCKOUT_TEMPLATE = "core/lockout.html"
 
 # Branding (shown in the header, login page and browser tab). Override in .env.
 SITE_NAME = env("SITE_NAME", default="Yool International School")

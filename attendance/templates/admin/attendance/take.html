@@ -1,58 +1,39 @@
 {% extends "admin/base_site.html" %}
-{% block extrastyle %}{{ block.super }}
-<style>
-  .att-top { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:14px; }
-  .att-row { display:grid; grid-template-columns: minmax(140px,1fr) auto minmax(120px,1fr); gap:10px; align-items:center;
-             padding:10px 4px; border-bottom:1px solid var(--border-color,#ccc); }
-  .att-name { font-size:16px; font-weight:600; }
-  .att-name small { display:block; font-weight:400; opacity:.7; }
-  .seg { display:inline-flex; border:1px solid var(--border-color,#888); border-radius:8px; overflow:hidden; }
-  .seg input { position:absolute; opacity:0; pointer-events:none; }
-  .seg label { padding:10px 12px; min-width:64px; text-align:center; cursor:pointer; font-size:13px; border-left:1px solid var(--border-color,#888); }
-  .seg label:first-of-type { border-left:0; }
-  .seg input:focus-visible + label { outline:2px solid #79aec8; outline-offset:-2px; }
-  .seg input[value=present]:checked + label { background:#1f7a3d; color:#fff; }
-  .seg input[value=absent]:checked + label { background:#b3261e; color:#fff; }
-  .seg input[value=late]:checked + label { background:#b86e00; color:#fff; }
-  .seg input[value=excused]:checked + label { background:#2b5fa8; color:#fff; }
-  .att-reason { width:100%; box-sizing:border-box; padding:8px; }
-  .att-count { font-size:15px; }
-  .att-sticky { position:sticky; bottom:0; padding:12px 0; background:var(--body-bg,#fff); border-top:1px solid var(--border-color,#ccc); }
-  @media (max-width:640px) { .att-row { grid-template-columns:1fr; } .seg label { flex:1; } .seg { display:flex; } }
-</style>
-{% endblock %}
 {% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
 <a href="{% url 'admin:attendance_attendanceregister_changelist' %}?date={{ day|date:'Y-m-d' }}">Attendance</a> &rsaquo; {{ section.display_name }}</div>{% endblock %}
+{% block content_title %}{% endblock %}
 {% block content %}
-<h2>{{ section.display_name }} &middot; {{ day|date:"l, j F Y" }}{% if editing %} <small>(editing a saved register)</small>{% endif %}</h2>
+<div class="pagehead">
+  <div><h1>{{ section.display_name }}</h1>
+  <p class="sub">{{ day|date:"l, j F Y" }}{% if editing %} (editing a saved register){% else %}. Everyone starts as present; change the exceptions.{% endif %}</p></div>
+  {% if not problem and rows %}<button type="button" class="btn alt" id="all-present">Mark everyone present</button>{% endif %}
+</div>
 {% if problem %}
   <p class="errornote">{{ problem }}</p>
-  <p><a href="{% url 'admin:attendance_attendanceregister_changelist' %}?date={{ day|date:'Y-m-d' }}">Back to attendance</a></p>
+  <p><a class="btn alt" href="{% url 'admin:attendance_attendanceregister_changelist' %}?date={{ day|date:'Y-m-d' }}">Back to attendance</a></p>
 {% else %}
 <form method="post" id="att-form">
   {% csrf_token %}
-  <div class="att-top">
-    <button type="button" id="all-present">Mark everyone present</button>
-    <span class="att-count" id="att-count"></span>
-  </div>
+  <section class="card">
   {% for r in rows %}
-  <div class="att-row">
-    <div class="att-name">{{ r.student.full_name }}<small>{{ r.student.student_no }}</small></div>
+  <div class="row">
+    <div><span class="rname">{{ r.student.full_name }}</span><small>{{ r.student.student_no }}</small></div>
     <div class="seg" role="radiogroup" aria-label="{{ r.student.full_name }}">
       {% for value, label in statuses %}
         <input type="radio" id="s-{{ r.id }}-{{ value }}" name="status_{{ r.id }}" value="{{ value }}" {% if r.status == value %}checked{% endif %}>
-        <label for="s-{{ r.id }}-{{ value }}">{{ label }}</label>
+        <label for="s-{{ r.id }}-{{ value }}" class="o-{{ value }}">{{ label }}</label>
       {% endfor %}
     </div>
-    <input class="att-reason" type="text" name="reason_{{ r.id }}" maxlength="200" placeholder="Reason (optional)" value="{{ r.reason }}">
+    <input class="in att-reason" type="text" name="reason_{{ r.id }}" maxlength="200" placeholder="Reason (optional)" aria-label="Reason for {{ r.student.full_name }}" value="{{ r.reason }}">
   </div>
   {% empty %}
   <p>No students were enrolled in this class on this date.</p>
   {% endfor %}
+  </section>
   {% if rows %}
-  <div class="att-sticky">
-    <input type="submit" class="default" value="Save attendance">
-    <a href="{% url 'admin:attendance_attendanceregister_changelist' %}?date={{ day|date:'Y-m-d' }}" class="button cancel-link">Cancel</a>
+  <div class="bar">
+    <span id="att-count" aria-live="polite"></span>
+    <span><a href="{% url 'admin:attendance_attendanceregister_changelist' %}?date={{ day|date:'Y-m-d' }}" class="btn alt">Cancel</a> <input type="submit" class="btn" value="Save attendance"></span>
   </div>
   {% endif %}
 </form>
@@ -62,15 +43,16 @@
   function status(row) { var c = row.querySelector('input[type=radio]:checked'); return c ? c.value : 'present'; }
   function refresh() {
     var counts = {present:0, absent:0, late:0, excused:0};
-    form.querySelectorAll('.att-row').forEach(function (row) {
+    form.querySelectorAll('.row').forEach(function (row) {
       var s = status(row); counts[s]++;
       row.querySelector('.att-reason').style.visibility = (s === 'present') ? 'hidden' : 'visible';
     });
-    document.getElementById('att-count').textContent =
-      counts.present + ' present, ' + counts.absent + ' absent, ' + counts.late + ' late, ' + counts.excused + ' excused';
+    var out = document.getElementById('att-count');
+    if (out) out.innerHTML = '<b>' + counts.present + ' present</b>, ' + counts.absent + ' absent, ' + counts.late + ' late, ' + counts.excused + ' excused';
   }
   form.addEventListener('change', refresh);
-  document.getElementById('all-present').addEventListener('click', function () {
+  var all = document.getElementById('all-present');
+  if (all) all.addEventListener('click', function () {
     form.querySelectorAll('input[type=radio][value=present]').forEach(function (r) { r.checked = true; });
     refresh();
   });

@@ -1,0 +1,64 @@
+{% extends "admin/base_site.html" %}
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block sidebar %}{% endblock %}
+{% block content %}
+{% with d=dashboard %}
+<div class="pagehead">
+  <div><h1>Overview</h1><p class="sub">{{ d.today|date:"l j F Y" }}{% if d.term %}, {{ d.term.name }}{% endif %}</p></div>
+  {% if perms.reports.view_reportcomment %}<a class="btn" href="{% url 'admin:reports_reportcomment_changelist' %}">Report cards</a>{% endif %}
+</div>
+<div class="kpis">
+  {% for k in d.kpis %}<div class="card kpi"><small>{{ k.label }}</small><b>{{ k.value }}</b><span>{{ k.sub }}</span></div>{% endfor %}
+</div>
+<div class="cols">
+  <div>
+  {% if d.show_registers %}
+  <section class="card">
+    <h2>Today's registers</h2>
+    <div class="xscroll"><table class="tbl">
+      <thead><tr><th>Class</th><th>Class teacher</th><th>Register</th><th class="num">Present</th><th class="num">Absent</th><th class="num">Late</th><th></th></tr></thead>
+      <tbody>
+      {% for r in d.registers %}
+        <tr>
+          <td><b>{{ r.section.display_name }}</b></td>
+          <td>{{ r.section.homeroom_teacher|default:"-" }}</td>
+          <td>{% if r.problem %}<span class="badge warn" title="{{ r.problem }}">No school</span>{% elif r.register %}<span class="badge ok">Taken</span>{% else %}<span class="badge no">Not taken</span>{% endif %}</td>
+          <td class="num">{% if r.summary %}{{ r.summary.present }}{% endif %}</td>
+          <td class="num">{% if r.summary %}{{ r.summary.absent }}{% endif %}</td>
+          <td class="num">{% if r.summary %}{{ r.summary.late }}{% endif %}</td>
+          <td>{% if r.take_url %}<a class="btn alt" href="{{ r.take_url }}">{% if r.register %}Edit{% else %}Take attendance{% endif %}</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  {% endif %}
+  {% if d.subjects %}
+  <section class="card">
+    <h2>Your subjects</h2>
+    <div class="xscroll"><table class="tbl">
+      <thead><tr><th>Class</th><th>Subject</th><th class="num">Assessments this term</th><th></th></tr></thead>
+      <tbody>{% for s in d.subjects %}<tr><td>{{ s.cs.class_section.display_name }}</td><td><b>{{ s.cs.subject }}</b></td><td class="num">{{ s.assessments }}</td><td><a class="btn alt" href="{{ s.url }}">Enter grades</a></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+  {% endif %}
+  {% if not d.show_registers and not d.subjects %}
+  <section class="card"><h2>Welcome</h2><p class="sub">Use the menu on the left. If you expected to see your class here, ask the school office to set you as the class teacher or to assign your subjects.</p></section>
+  {% endif %}
+  </div>
+  <section class="card">
+    <h2>Needs attention</h2>
+    {% if d.attention %}
+    <ul class="todo">{% for a in d.attention %}<li>{{ a.text }}{% if a.url %}<a href="{{ a.url }}">{{ a.link }}</a>{% endif %}</li>{% endfor %}</ul>
+    {% else %}<p class="sub">Nothing needs your attention right now.</p>{% endif %}
+  </section>
+</div>
+{% endwith %}
+<section id="records" style="margin-top:28px">
+  <h2>All records</h2>
+  <p class="sub">Every list you have access to, grouped by area.</p>
+  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+</section>
+{% endblock %}

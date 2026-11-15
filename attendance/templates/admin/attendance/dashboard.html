@@ -1,49 +1,44 @@
 {% extends "admin/base_site.html" %}
-{% block extrastyle %}{{ block.super }}
-<style>
-  .att-nav { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:16px; }
-  .att-table { width:100%; }
-  .att-table td, .att-table th { padding:8px 10px; text-align:left; }
-  .att-badge { padding:2px 8px; border-radius:10px; font-size:12px; white-space:nowrap; }
-  .att-ok { background:#1f7a3d; color:#fff; } .att-no { background:#b3261e; color:#fff; } .att-off { background:#666; color:#fff; }
-  .att-btn { display:inline-block; padding:8px 14px; border-radius:6px; background:var(--button-bg,#417690); color:#fff !important; text-decoration:none; }
-</style>
-{% endblock %}
 {% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Attendance</div>{% endblock %}
+{% block content_title %}{% endblock %}
 {% block content %}
-<div class="att-nav">
-  <a href="?date={{ prev_day|date:'Y-m-d' }}">&laquo; Previous day</a>
-  <form method="get"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}"> <input type="submit" value="Go"></form>
-  {% if next_day %}<a href="?date={{ next_day|date:'Y-m-d' }}">Next day &raquo;</a>{% endif %}
-  <strong>{{ day|date:"l, j F Y" }}</strong>
+<div class="pagehead">
+  <div><h1>Attendance</h1><p class="sub">{{ day|date:"l, j F Y" }}</p></div>
+  <div class="filters no-print">
+    <a class="btn alt" href="?date={{ prev_day|date:'Y-m-d' }}">&laquo; Previous day</a>
+    <form method="get" class="filters"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" aria-label="Date"> <input type="submit" class="btn alt" value="Go"></form>
+    {% if next_day %}<a class="btn alt" href="?date={{ next_day|date:'Y-m-d' }}">Next day &raquo;</a>{% endif %}
+  </div>
 </div>
-<p>
+<p class="no-print">
   <a href="{% url 'admin:attendance_report_daily' %}?date={{ day|date:'Y-m-d' }}">Daily summary</a> &nbsp;|&nbsp;
   <a href="{% url 'admin:attendance_report_students' %}">Attendance by student</a> &nbsp;|&nbsp;
   <a href="{% url 'admin:attendance_report_chronic' %}">Low attendance list</a>
 </p>
-<table class="att-table">
-  <thead><tr><th>Class</th><th>Teacher</th><th>Students</th><th>Register</th><th>Present</th><th>Absent</th><th>Late</th><th>Excused</th><th></th></tr></thead>
+<section class="card">
+<div class="xscroll"><table class="tbl">
+  <thead><tr><th>Class</th><th>Teacher</th><th>Students</th><th>Register</th><th class="num">Present</th><th class="num">Absent</th><th class="num">Late</th><th class="num">Excused</th><th></th></tr></thead>
   <tbody>
   {% for r in rows %}
     <tr>
-      <td><strong>{{ r.section.display_name }}</strong></td>
+      <td><b>{{ r.section.display_name }}</b></td>
       <td>{{ r.section.homeroom_teacher|default:"-" }}</td>
       <td>{{ r.students }}</td>
       <td>
-        {% if r.problem %}<span class="att-badge att-off" title="{{ r.problem }}">No school</span>
-        {% elif r.register %}<span class="att-badge att-ok">Taken</span>{% if r.register.taken_by %} <small>by {{ r.register.taken_by }}</small>{% endif %}
-        {% else %}<span class="att-badge att-no">Not taken</span>{% endif %}
+        {% if r.problem %}<span class="badge warn" title="{{ r.problem }}">No school</span>
+        {% elif r.register %}<span class="badge ok">Taken</span>{% if r.register.taken_by %} <small>by {{ r.register.taken_by }}</small>{% endif %}
+        {% else %}<span class="badge no">Not taken</span>{% endif %}
       </td>
-      <td>{% if r.summary %}{{ r.summary.present }}{% endif %}</td>
-      <td>{% if r.summary %}{{ r.summary.absent }}{% endif %}</td>
-      <td>{% if r.summary %}{{ r.summary.late }}{% endif %}</td>
-      <td>{% if r.summary %}{{ r.summary.excused }}{% endif %}</td>
-      <td>{% if can_take and not r.problem %}<a class="att-btn" href="{% url 'admin:attendance_take' r.section.pk day|date:'Y-m-d' %}">{% if r.register %}Edit{% else %}Take attendance{% endif %}</a>{% endif %}</td>
+      <td class="num">{% if r.summary %}{{ r.summary.present }}{% endif %}</td>
+      <td class="num">{% if r.summary %}{{ r.summary.absent }}{% endif %}</td>
+      <td class="num">{% if r.summary %}{{ r.summary.late }}{% endif %}</td>
+      <td class="num">{% if r.summary %}{{ r.summary.excused }}{% endif %}</td>
+      <td>{% if can_take and not r.problem %}<a class="btn" href="{% url 'admin:attendance_take' r.section.pk day|date:'Y-m-d' %}">{% if r.register %}Edit{% else %}Take attendance{% endif %}</a>{% endif %}</td>
     </tr>
   {% empty %}
     <tr><td colspan="9">No classes to show. Check that a class exists for this academic year{% if user.role == "teacher" %} and that you are set as its teacher{% endif %}.</td></tr>
   {% endfor %}
   </tbody>
-</table>
+</table></div>
+</section>
 {% endblock %}

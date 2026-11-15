@@ -1,9 +1,29 @@
-{% extends "admin/login.html" %}
+{% extends "admin/base_site.html" %}
+{% block title %}Sign in | {{ brand_short_name }}{% endblock %}
+{% block extrastyle %}{{ block.super }}{{ form.media }}{% endblock %}
+{% block bodyclass %}{{ block.super }} login{% endblock %}
+{% block header %}{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block messages %}{% endblock %}
+{% block content_title %}{% endblock %}
 {% block content %}
-<div style="text-align:center;margin-bottom:18px;">
-  {% if brand_logo_url %}<img src="{{ brand_logo_url }}" alt="" style="height:72px;width:auto;border-radius:8px;background:#fff;padding:4px;">{% endif %}
-  <h1 style="margin:8px 0 2px;font-size:22px;">{{ brand_name }}</h1>
-  <p style="margin:0;opacity:.8;">{{ brand_subtitle }}</p>
+<div class="login-shell">
+  <section class="hero">
+    <div>{% if brand_logo_url %}<span class="tile"><img src="{{ brand_logo_url }}" alt="Yool International School logo"></span>{% endif %}</div>
+    <div><h1>{{ brand_name }}</h1><p>{{ brand_subtitle }}. Attendance, grades and report cards in one place.</p></div>
+  </section>
+  <section class="formwrap">
+    <form action="{{ app_path }}" method="post" id="login-form" class="formcard">{% csrf_token %}
+      <div><h1>Sign in</h1><p class="sub">Use the account the school gave you.</p></div>
+      {% if form.errors and not form.non_field_errors %}<p class="errornote">Please correct the error below.</p>{% endif %}
+      {% if form.non_field_errors %}{% for error in form.non_field_errors %}<p class="errornote">{{ error }}</p>{% endfor %}{% endif %}
+      {% if user.is_authenticated %}<p class="errornote">You are signed in as {{ username }}, but this account cannot open this page. Sign in with a different account?</p>{% endif %}
+      <div>{{ form.username.errors }}{{ form.username.label_tag }}{{ form.username }}</div>
+      <div>{{ form.password.errors }}{{ form.password.label_tag }}{{ form.password }}<input type="hidden" name="next" value="{{ next }}"></div>
+      <button class="btn" type="submit">Sign in</button>
+      <p class="note">Forgot your password? Ask the school administrator to reset it.</p>
+    </form>
+  </section>
 </div>
-{{ block.super }}
 {% endblock %}

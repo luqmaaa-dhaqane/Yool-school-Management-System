@@ -24,12 +24,18 @@ class LoginPageTests(TestCase):
         page = self.client.get("/admin/login/").content.decode()
         self.assertIn("Another School", page)
 
+    @override_settings(SITE_LOGO_STATIC="core/does-not-exist.jpg")
     def test_no_logo_image_when_file_is_missing(self):
         self.assertNotIn("<img", self.client.get("/admin/login/").content.decode())
 
-    @override_settings(SITE_LOGO_STATIC="core/show_password.js")  # any existing static file stands in for the logo
-    def test_logo_appears_when_the_file_exists(self):
-        self.assertIn("<img", self.client.get("/admin/login/").content.decode())
+    def test_the_school_logo_is_installed_and_shown(self):
+        from django.contrib.staticfiles import finders
+        from PIL import Image
+
+        path = finders.find("core/logo.jpg")
+        self.assertIsNotNone(path)
+        Image.open(path).verify()  # a real, readable image
+        self.assertIn("core/logo.jpg", self.client.get("/admin/login/").content.decode())
 
     def test_show_password_script_is_served_and_covers_password_fields(self):
         from django.contrib.staticfiles import finders

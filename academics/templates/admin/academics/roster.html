@@ -1,24 +1,13 @@
 {% extends "admin/base_site.html" %}
-{% block extrastyle %}{{ block.super }}
-<style>
-  @media print {
-    #header, .breadcrumbs, .no-print, #nav-sidebar, .toggle-nav-sidebar { display: none !important; }
-    body { background: #fff; color: #000; }
-  }
-  .roster td, .roster th { padding: 6px 10px; border-bottom: 1px solid #ccc; text-align: left; }
-</style>
-{% endblock %}
-{% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
-<a href="{% url 'admin:academics_classsection_changelist' %}">Classes</a> &rsaquo; Roster</div>
-{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+<a href="{% url 'admin:academics_classsection_changelist' %}">Classes</a> &rsaquo; Roster</div>{% endblock %}
+{% block content_title %}{% endblock %}
 {% block content %}
-<p class="no-print">
-  <a href="?format=csv">Download CSV</a> &nbsp;|&nbsp;
-  <a href="#" onclick="window.print(); return false;">Print</a>
-</p>
-<p>{{ rows|length }} student(s){% if section.capacity %} of {{ section.capacity }} seats{% endif %}</p>
-<table class="roster">
+<div class="pagehead">
+  <div><h1>{{ section.display_name }} roster</h1><p class="sub">{{ section.academic_year }} &middot; {{ rows|length }} student(s){% if section.capacity %} of {{ section.capacity }} seats{% endif %}</p></div>
+  <div class="no-print"><a class="btn alt" href="?format=csv">Download CSV</a> <a class="btn" href="#" onclick="window.print(); return false;">Print</a></div>
+</div>
+<section class="card"><div class="xscroll"><table class="tbl">
   <thead><tr><th>#</th><th>Student no</th><th>Name</th><th>Gender</th><th>Age</th><th>Guardian</th><th>Phone</th></tr></thead>
   <tbody>
   {% for r in rows %}
@@ -28,5 +17,5 @@
     <tr><td colspan="7">No students enrolled yet.</td></tr>
   {% endfor %}
   </tbody>
-</table>
+</table></div></section>
 {% endblock %}

@@ -1,61 +1,48 @@
 {% extends "admin/base_site.html" %}
-{% block extrastyle %}{{ block.super }}
-<style>
-  .grid-wrap { overflow-x:auto; }
-  .grid td, .grid th { padding:6px 8px; text-align:left; white-space:nowrap; border-bottom:1px solid var(--border-color,#ccc); }
-  .grid th.sub { font-weight:400; opacity:.75; font-size:12px; }
-  .grid td.name { position:sticky; left:0; background:var(--body-bg,#fff); font-weight:600; }
-  .grid input[type=text] { width:70px; padding:7px; text-align:right; }
-  .grid input[readonly] { background:transparent; border:0; }
-  .grid .res { font-weight:600; }
-  .gb-lock { background:#b3261e; color:#fff; padding:2px 8px; border-radius:10px; font-size:12px; }
-  .att-sticky { position:sticky; bottom:0; padding:12px 0; background:var(--body-bg,#fff); border-top:1px solid var(--border-color,#ccc); }
-</style>
-{% endblock %}
 {% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
 <a href="{% url 'admin:grades_assessment_changelist' %}?term={{ term.pk }}">Gradebook</a> &rsaquo; {{ class_subject.subject }}</div>{% endblock %}
+{% block content_title %}{% endblock %}
 {% block content %}
-<h2>{{ class_subject.subject }} &middot; {{ class_subject.class_section.display_name }} &middot; {{ term.name }}
-  {% if locked %}<span class="gb-lock">Locked</span>{% endif %}</h2>
-<p>Teacher: {{ class_subject.teacher|default:"not assigned" }}.
-  {% if editable %}Leave a box empty if the student has no score yet (an empty box is not counted as zero).{% endif %}
-  {% if can_add %}<a href="{% url 'admin:grades_assessment_add' %}?class_subject={{ class_subject.pk }}&term={{ term.pk }}">Add assessment</a>{% endif %}</p>
+<div class="pagehead">
+  <div><h1>{{ class_subject.subject }}</h1>
+  <p class="sub">{{ class_subject.class_section.display_name }}, {{ term.name }} {% if locked %}<span class="badge no">Locked</span>{% else %}<span class="badge warn">Term open</span>{% endif %}
+  &middot; Teacher: {{ class_subject.teacher|default:"not assigned" }}</p></div>
+  {% if can_add %}<a class="btn alt" href="{% url 'admin:grades_assessment_add' %}?class_subject={{ class_subject.pk }}&term={{ term.pk }}">Add assessment</a>{% endif %}
+</div>
 {% if not assessments %}
-  <p>No assessments yet for this term. {% if can_add %}Add one (for example a quiz) to start entering scores.{% endif %}</p>
+  <section class="card"><p>No assessments yet for this term. {% if can_add %}Add one (for example a quiz) to start entering scores.{% endif %}</p></section>
 {% else %}
 <form method="post">
   {% csrf_token %}
-  <div class="grid-wrap">
-  <table class="grid">
+  <section class="card"><div class="grid-wrap">
+  <table class="tbl grid">
     <thead>
       <tr><th>Student</th>
         {% for a in assessments %}
-          <th>{% if editable or locked %}<a href="{% url 'admin:grades_assessment_change' a.pk %}">{{ a.title }}</a>{% else %}{{ a.title }}{% endif %}<br>
-              <span class="sub">{{ a.assessment_type.name }} &middot; out of {{ a.max_score|floatformat:"-2" }}</span></th>
+          <th class="num">{% if editable or locked %}<a href="{% url 'admin:grades_assessment_change' a.pk %}">{{ a.title }}</a>{% else %}{{ a.title }}{% endif %}<span class="sub2">{{ a.assessment_type.name }}, out of {{ a.max_score|floatformat:"-2" }}</span></th>
         {% endfor %}
-        <th>Term %</th><th>Grade</th><th>Rank</th></tr>
+        <th class="num">Term %</th><th class="num">Grade</th><th class="num">Position</th></tr>
     </thead>
     <tbody>
     {% for r in rows %}
       <tr>
         <td class="name">{{ r.student.full_name }}</td>
         {% for c in r.cells %}
-          <td><input type="text" inputmode="decimal" name="{{ c.name }}" value="{{ c.value }}" {% if not editable %}readonly{% endif %} autocomplete="off"></td>
+          <td class="num"><input class="sc in" type="text" inputmode="decimal" name="{{ c.name }}" value="{{ c.value }}" {% if not editable %}readonly{% endif %} autocomplete="off" aria-label="{{ r.student.full_name }}, {{ c.assessment.title }}"></td>
         {% endfor %}
-        <td class="res">{% if r.percent is not None %}{{ r.percent }}{% endif %}</td>
-        <td class="res">{{ r.label }}</td>
-        <td>{{ r.rank|default_if_none:"" }}</td>
+        <td class="num res">{% if r.percent is not None %}{{ r.percent }}{% endif %}</td>
+        <td class="num res">{{ r.label }}</td>
+        <td class="num">{{ r.rank|default_if_none:"" }}</td>
       </tr>
     {% empty %}
       <tr><td colspan="{{ assessments|length|add:4 }}">No students in this class during this term.</td></tr>
     {% endfor %}
     </tbody>
-  </table>
-  </div>
+  </table></div></section>
   {% if editable %}
-  <div class="att-sticky">
-    <input type="submit" class="default" value="Save grades">
-    <a href="{% url 'admin:grades_assessment_changelist' %}?term={{ term.pk }}" class="button cancel-link">Back</a>
+  <div class="bar">
+    <span class="note" style="font-size:13px">An empty box means no score yet. It is not counted as zero.</span>
+    <span><a href="{% url 'admin:grades_assessment_changelist' %}?term={{ term.pk }}" class="btn alt">Back</a> <input type="submit" class="btn" value="Save grades"></span>
   </div>
   {% endif %}
 </form>

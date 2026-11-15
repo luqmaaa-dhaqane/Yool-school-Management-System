@@ -1,4 +1,4 @@
-# Yool International School Student Management System (Phase 4)
+# Yool International School Student Management System (Phase 4 + new interface)
 
 Django + PostgreSQL. Object-oriented domain design: business rules live on the
 model classes (`Student.withdraw()`, `AcademicYear.lock()`), views stay thin.
@@ -93,6 +93,19 @@ python manage.py finish_update    # refreshes permissions and adds any missing s
 3. Change state only through methods (`withdraw()`, `lock()`), not by assigning fields.
 4. Every new model gets a `school` FK (or reaches one) and joins `ROLE_PERMISSIONS`.
 5. New model => migration committed in the same change (CI enforces this).
+
+## Interface
+
+- **Look:** the school's colours (brown, green, gold) and logo. All styling is in `core/static/core/theme.css`;
+  templates live in `templates/admin/` (shell, login, home) and in each app's `templates/admin/<app>/`.
+- **Sidebar:** Overview, Students, Classes, Attendance, Gradebook, Report cards, Settings. Each person sees only the
+  sections they may open (`core/context_processors.py`). "Settings" opens the list of all records on the home page.
+- **Home page:** a dashboard that depends on who you are (`core/dashboard.py`): class teachers see today's register and
+  what is not taken yet; subject teachers see their subjects; the Principal also gets term and low-attendance reminders.
+- **Logo:** `core/static/core/logo.jpg` (the tree emblem and YOOL lettering, shown on a white tile and on report cards).
+  Replace the file to change it. Name and subtitle come from `SITE_NAME`, `SITE_SUBTITLE`, `SITE_SHORT_NAME` in `.env`.
+- **Light theme only:** the dark-mode switch was removed so every screen matches the design.
+- **Locked accounts** see a branded "too many sign-in attempts" page.
 
 ## Security
 

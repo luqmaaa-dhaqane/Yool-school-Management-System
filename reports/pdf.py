@@ -12,15 +12,17 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Image, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-NAVY = colors.HexColor("#1f3a5f")
-LIGHT = colors.HexColor("#eef2f7")
-LINE = colors.HexColor("#b8c2d0")
+NAVY = colors.HexColor("#7c442c")      # school brown (table headers, rules)
+DEEP = colors.HexColor("#3e2415")      # deep brown (titles)
+GOLD = colors.HexColor("#ecc474")
+LIGHT = colors.HexColor("#f5ede3")
+LINE = colors.HexColor("#d9cdb9")
 RED = colors.HexColor("#b3261e")
 WIDTH = A4[0] - 30 * mm
 
 _base = getSampleStyleSheet()
 STYLE = {
-    "school": ParagraphStyle("school", parent=_base["Title"], fontSize=18, leading=22, textColor=NAVY, alignment=0, spaceAfter=0),
+    "school": ParagraphStyle("school", parent=_base["Title"], fontSize=18, leading=22, textColor=DEEP, alignment=0, spaceAfter=0),
     "sub": ParagraphStyle("sub", parent=_base["Normal"], fontSize=11, leading=14, textColor=colors.HexColor("#444444")),
     "cell": ParagraphStyle("cell", parent=_base["Normal"], fontSize=8.5, leading=10.5),
     "cellc": ParagraphStyle("cellc", parent=_base["Normal"], fontSize=8.5, leading=10.5, alignment=TA_CENTER),
@@ -28,7 +30,7 @@ STYLE = {
     "headl": ParagraphStyle("headl", parent=_base["Normal"], fontSize=8, leading=10, textColor=colors.white),
     "label": ParagraphStyle("label", parent=_base["Normal"], fontSize=7.5, leading=9, textColor=colors.HexColor("#666666")),
     "value": ParagraphStyle("value", parent=_base["Normal"], fontSize=10, leading=12, fontName="Helvetica-Bold"),
-    "h2": ParagraphStyle("h2", parent=_base["Heading3"], fontSize=10.5, leading=13, textColor=NAVY, spaceBefore=8, spaceAfter=3),
+    "h2": ParagraphStyle("h2", parent=_base["Heading3"], fontSize=10.5, leading=13, textColor=DEEP, spaceBefore=8, spaceAfter=3),
     "comment": ParagraphStyle("comment", parent=_base["Normal"], fontSize=9, leading=11.5),
     "small": ParagraphStyle("small", parent=_base["Normal"], fontSize=7.5, leading=9.5, textColor=colors.HexColor("#555555")),
     "warn": ParagraphStyle("warn", parent=_base["Normal"], fontSize=9, leading=11, textColor=RED, fontName="Helvetica-Bold", alignment=TA_CENTER),
@@ -63,7 +65,7 @@ def _card_story(card):
              _p(f"Academic year {card.term.academic_year.name}  |  {card.term.name}", "sub")]
     logo = _logo()
     header = Table([[logo, title]] if logo else [[title]], colWidths=[46 * mm, WIDTH - 46 * mm] if logo else [WIDTH])
-    header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LINEBELOW", (0, 0), (-1, 0), 1.2, NAVY),
+    header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LINEBELOW", (0, 0), (-1, 0), 2.2, GOLD),
                                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
     story += [header, Spacer(1, 4)]
     if card.provisional:

@@ -1,12 +1,26 @@
 {% extends "admin/base.html" %}
 {% load static %}
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ brand_short_name }}{% endblock %}
-{% block extrahead %}{{ block.super }}<script defer src="{% static 'core/show_password.js' %}"></script>{% endblock %}
+{% block dark-mode-vars %}{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/theme.css' %}">{% endblock %}
+{% block extrahead %}{{ block.super }}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+{% if brand_logo_url %}<link rel="icon" href="{{ brand_logo_url }}">{% endif %}
+<script defer src="{% static 'core/show_password.js' %}"></script>
+{% endblock %}
 {% block branding %}
-<div id="site-name" style="display:flex;align-items:center;gap:10px;">
-  {% if brand_logo_url %}<img src="{{ brand_logo_url }}" alt="" style="height:38px;width:auto;border-radius:6px;background:#fff;padding:2px;">{% endif %}
-  <a href="{% url 'admin:index' %}">{{ brand_name }}</a>
-</div>
-{% if user.is_anonymous %}{% include "admin/color_theme_toggle.html" %}{% endif %}
+<a class="brand" href="{% url 'admin:index' %}">
+  {% if brand_logo_url %}<span class="tile"><img src="{{ brand_logo_url }}" alt="Yool International School logo"></span>{% endif %}
+  <span class="bt"><b>{{ brand_name }}</b><small>{{ brand_subtitle }}</small></span>
+</a>
+{% endblock %}
+{% block userlinks %}
+  {% if user.has_usable_password %}<a href="{% url 'admin:password_change' %}">Change password</a> /{% endif %}
+  <form id="logout-form" method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
 {% endblock %}
 {% block nav-global %}{% endblock %}
+{% block nav-sidebar %}
+<nav class="yool-side" aria-label="Main">
+  {% for item in nav_items %}<a href="{{ item.url }}"{% if item.active %} class="on" aria-current="page"{% endif %}><svg class="i" viewBox="0 0 24 24" aria-hidden="true">{{ item.icon }}</svg>{{ item.label }}</a>{% endfor %}
+</nav>
+{% endblock %}

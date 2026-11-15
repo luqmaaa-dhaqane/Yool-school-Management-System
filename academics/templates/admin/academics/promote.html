@@ -1,25 +1,25 @@
 {% extends "admin/base_site.html" %}
-{% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
-<a href="{% url 'admin:academics_classsection_changelist' %}">Classes</a> &rsaquo; Promote</div>
-{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+<a href="{% url 'admin:academics_classsection_changelist' %}">Classes</a> &rsaquo; Promote</div>{% endblock %}
+{% block content_title %}{% endblock %}
 {% block content %}
-<p><strong>{{ section }}</strong> ({{ section.academic_year }}) has <strong>{{ student_count }}</strong> enrolled student(s).
-Everyone is promoted unless you list them as repeating. This is all-or-nothing: if a target class is full, nothing changes.</p>
+<div class="pagehead"><div><h1>Promote {{ section.display_name }}</h1>
+<p class="sub">{{ section.academic_year }} &middot; {{ student_count }} enrolled student(s)</p></div></div>
+<section class="card" style="max-width:720px">
+<p class="sub">Everyone is promoted unless you list them as repeating. This is all-or-nothing: if a target class is full, nothing changes.</p>
 <form method="post">
   {% csrf_token %}
   {{ form.non_field_errors }}
   {% for field in form %}
-  <div class="form-row">
+  <div class="formrow" style="margin:16px 0">
     {{ field.errors }}
-    <label for="{{ field.id_for_label }}"><strong>{{ field.label }}</strong></label>
+    <label for="{{ field.id_for_label }}"><strong>{{ field.label }}</strong></label><br>
     {{ field }}
-    {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+    {% if field.help_text %}<div class="note">{{ field.help_text }}</div>{% endif %}
   </div>
   {% endfor %}
-  <div class="submit-row">
-    <input type="submit" class="default" value="Promote class">
-    <a href="{% url 'admin:academics_classsection_changelist' %}" class="button cancel-link">Cancel</a>
-  </div>
+  <input type="submit" class="btn" value="Promote class">
+  <a href="{% url 'admin:academics_classsection_changelist' %}" class="btn alt">Cancel</a>
 </form>
+</section>
 {% endblock %}

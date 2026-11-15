@@ -1,0 +1,13 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Too many attempts | {{ brand_short_name }}</title>
+<link rel="stylesheet" href="{% static 'core/theme.css' %}">
+{% if brand_logo_url %}<link rel="icon" href="{{ brand_logo_url }}">{% endif %}</head>
+<body class="login">
+<div class="lockout-card">
+  {% if brand_logo_url %}<span class="tile" style="width:120px;height:94px;border:1px solid #e7dfd2"><img src="{{ brand_logo_url }}" alt="Yool International School logo"></span>{% endif %}
+  <h1 style="margin:16px 0 8px;font-size:22px;color:#3e2415">Too many sign-in attempts</h1>
+  <p>For safety, this account is locked for a short while after several wrong passwords.
+  Please wait {% if cooloff_time %}about {{ cooloff_time }} {% else %}15 minutes {% endif %}and try again, or ask the school administrator for help.</p>
+  <p><a class="btn" href="{% url 'admin:login' %}">Back to sign in</a></p>
+</div></body></html>

@@ -1,22 +1,22 @@
 {% extends "admin/base_site.html" %}
-{% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
-<a href="{% url 'admin:people_student_changelist' %}">Students</a> &rsaquo; Import</div>
-{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+<a href="{% url 'admin:people_student_changelist' %}">Students</a> &rsaquo; Import</div>{% endblock %}
+{% block content_title %}{% endblock %}
 {% block content %}
-<p>Upload a CSV with one student per row. Start with <a href="{% url 'admin:people_student_import_template' %}">the template</a>.
-Required columns: <strong>first_name, last_name, gender, date_of_birth</strong>.
-Optional: {{ columns|join:", " }}.</p>
-<p>Dates: YYYY-MM-DD or DD/MM/YYYY. If <em>grade</em> is filled (for example Grade 3), the student is placed in that grade's class
+<div class="pagehead"><div><h1>Import students</h1><p class="sub">Add many students at once from a CSV file.</p></div>
+<a class="btn alt" href="{% url 'admin:people_student_import_template' %}">Download the template</a></div>
+<section class="card" style="max-width:760px">
+<p>Required columns: <strong>first_name, last_name, gender, date_of_birth</strong>. Optional: {{ columns|join:", " }}.</p>
+<p class="sub">Dates: YYYY-MM-DD or DD/MM/YYYY. If <em>grade</em> is filled (for example Grade 3), the student is placed in that grade's class
 for the current academic year. Always preview first. If any row has an error, nothing is saved.</p>
-
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
   {{ form.as_p }}
-  <div class="submit-row"><input type="submit" class="default" value="Run import"></div>
+  <input type="submit" class="btn" value="Run import">
 </form>
-
+</section>
 {% if report %}
+<section class="card">
 <h2>{% if report.dry_run %}Preview{% elif report.committed %}Imported{% else %}Not saved{% endif %}</h2>
 <ul>
   <li>Rows read: <strong>{{ report.total }}</strong></li>
@@ -26,7 +26,7 @@ for the current academic year. Always preview first. If any row has an error, no
   <li>Errors: <strong>{{ report.errors|length }}</strong></li>
 </ul>
 {% if report.errors %}
-<table>
+<table class="tbl">
   <thead><tr><th>Line</th><th>Problem</th></tr></thead>
   <tbody>{% for line, message in report.errors %}<tr><td>{{ line }}</td><td>{{ message }}</td></tr>{% endfor %}</tbody>
 </table>
@@ -34,5 +34,6 @@ for the current academic year. Always preview first. If any row has an error, no
 {% elif report.dry_run %}
 <p><strong>No errors.</strong> Untick "Preview only" and upload again to save.</p>
 {% endif %}
+</section>
 {% endif %}
 {% endblock %}
