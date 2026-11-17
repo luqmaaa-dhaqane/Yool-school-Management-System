@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import admin, messages
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -13,6 +13,7 @@ from django.urls import path, reverse
 from academics.models import ClassSection, ClassSubject
 from academics.selectors import default_term, terms_for
 from audit.mixins import AuditedAdminMixin
+from audit.models import AuditLog
 from core.admin_mixins import SchoolScopedAdminMixin
 from core.csv_utils import safe_row
 from core.exceptions import DomainError
@@ -142,6 +143,9 @@ class AssessmentAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmi
         custom = [
             path("grid/<uuid:class_subject_id>/<uuid:term_id>/", wrap(self.grid_view), name="grades_grid"),
             path("reports/marksheet/", wrap(self.marksheet_view), name="grades_marksheet"),
+            path("quick/add/<uuid:class_subject_id>/<uuid:term_id>/", wrap(self.quick_add_view), name="grades_quick_add"),
+            path("quick/<uuid:assessment_id>/edit/", wrap(self.quick_edit_view), name="grades_quick_edit"),
+            path("quick/<uuid:assessment_id>/delete/", wrap(self.quick_delete_view), name="grades_quick_delete"),
         ]
         return custom + super().get_urls()
 
@@ -188,6 +192,7 @@ class AssessmentAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmi
             "term": term,
             "rows": rows,
             "can_add": self.has_add_permission(request),
+            "types": AssessmentType.objects.filter(school_id=request.user.school_id) if request.user.school_id else AssessmentType.objects.all(),
             "opts": self.model._meta,
         }
         return TemplateResponse(request, "admin/grades/gradebook.html", context)
@@ -253,6 +258,7 @@ class AssessmentAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmi
             "editable": editable,
             "locked": not term.is_open(),
             "can_add": self.has_add_permission(request) and class_subject.can_be_graded_by(user) and term.is_open(),
+            "types": AssessmentType.objects.filter(school=class_subject.class_section.academic_year.school),
             "opts": self.model._meta,
         }
         return TemplateResponse(request, "admin/grades/grid.html", context)
@@ -297,3 +303,107 @@ class AssessmentAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmi
             "opts": self.model._meta,
         }
         return TemplateResponse(request, "admin/grades/report.html", context)
+
+    # --- quick add / edit / delete from the gradebook (dialogs, no separate page) ----
+    def _read_assessment_form(self, request, class_subject):
+        school = class_subject.class_section.academic_year.school
+        title = request.POST.get("title", "").strip()
+        if not title:
+            raise DomainError("Please give the assessment a title.")
+        try:
+            kind = AssessmentType.objects.filter(pk=request.POST.get("assessment_type"), school=school).first()
+        except (ValidationError, ValueError):
+            kind = None
+        if kind is None:
+            raise DomainError("Choose an assessment type.")
+        try:
+            maximum = Decimal(request.POST.get("max_score", "").strip().replace(",", "."))
+        except InvalidOperation:
+            raise DomainError("The maximum score must be a number.")
+        if maximum <= 0:
+            raise DomainError("The maximum score must be more than zero.")
+        held_raw = request.POST.get("held_on", "").strip()
+        try:
+            held_on = date.fromisoformat(held_raw) if held_raw else None
+        except ValueError:
+            raise DomainError("The date is not valid.")
+        return title, kind, maximum, held_on
+
+    def _go_back(self, class_subject, term):
+        return redirect(reverse("admin:grades_grid", args=[class_subject.pk, term.pk]))
+
+    def quick_add_view(self, request, class_subject_id, term_id):
+        user = request.user
+        term = get_object_or_404(_terms_for(user), pk=term_id)
+        cs = get_object_or_404(_class_subjects_for(user, term), pk=class_subject_id)
+        if request.method != "POST":
+            return self._go_back(cs, term)
+        if not (user.has_perm("grades.add_assessment") and cs.can_be_graded_by(user)):
+            raise PermissionDenied
+        try:
+            title, kind, maximum, held_on = self._read_assessment_form(request, cs)
+            if Assessment.objects.filter(class_subject=cs, term=term, title=title).exists():
+                raise DomainError(f"An assessment called '{title}' already exists for this subject and term.")
+            assessment = Assessment(class_subject=cs, term=term, assessment_type=kind, title=title, max_score=maximum, held_on=held_on)
+            assessment.full_clean()
+            assessment.save()
+        except DomainError as exc:
+            messages.error(request, str(exc))
+        except ValidationError as exc:
+            messages.error(request, "; ".join(exc.messages))
+        else:
+            AuditLog.record(user, "create", assessment, after={"title": title, "max_score": str(maximum), "term": term.name})
+            self.message_user(request, f"'{title}' added. You can enter scores now.", level=messages.SUCCESS)
+        return self._go_back(cs, term)
+
+    def _assessment_for(self, request, assessment_id):
+        assessment = get_object_or_404(
+            Assessment.objects.select_related("class_subject__class_section__academic_year__school", "term", "assessment_type"),
+            pk=assessment_id,
+        )
+        cs = get_object_or_404(_class_subjects_for(request.user, assessment.term), pk=assessment.class_subject_id)
+        return assessment, cs
+
+    def quick_edit_view(self, request, assessment_id):
+        user = request.user
+        assessment, cs = self._assessment_for(request, assessment_id)
+        if request.method != "POST":
+            return self._go_back(cs, assessment.term)
+        if not (user.has_perm("grades.change_assessment") and cs.can_be_graded_by(user)):
+            raise PermissionDenied
+        try:
+            title, kind, maximum, held_on = self._read_assessment_form(request, cs)
+            if Assessment.objects.filter(class_subject=cs, term=assessment.term, title=title).exclude(pk=assessment.pk).exists():
+                raise DomainError(f"An assessment called '{title}' already exists for this subject and term.")
+            if assessment.entries.filter(score__gt=maximum).exists():
+                raise DomainError("Some students already have a score higher than that maximum. Correct those scores first.")
+            assessment.title, assessment.assessment_type, assessment.max_score, assessment.held_on = title, kind, maximum, held_on
+            assessment.full_clean()
+            assessment.save()
+        except DomainError as exc:
+            messages.error(request, str(exc))
+        except ValidationError as exc:
+            messages.error(request, "; ".join(exc.messages))
+        else:
+            AuditLog.record(user, "update", assessment, after={"title": title, "max_score": str(maximum)})
+            self.message_user(request, f"'{title}' saved.", level=messages.SUCCESS)
+        return self._go_back(cs, assessment.term)
+
+    def quick_delete_view(self, request, assessment_id):
+        user = request.user
+        assessment, cs = self._assessment_for(request, assessment_id)
+        if request.method != "POST":
+            return self._go_back(cs, assessment.term)
+        if not (user.has_perm("grades.delete_assessment") and cs.can_be_graded_by(user)):
+            raise PermissionDenied
+        title = assessment.title
+        try:
+            if assessment.entries.exists():
+                raise DomainError("This assessment already has scores. Clear the scores first, then delete it.")
+            AuditLog.record(user, "delete", assessment, before={"title": title})
+            assessment.delete()
+        except DomainError as exc:
+            messages.error(request, str(exc))
+        else:
+            self.message_user(request, f"'{title}' deleted.", level=messages.SUCCESS)
+        return self._go_back(cs, assessment.term)

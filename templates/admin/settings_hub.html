@@ -1,0 +1,28 @@
+{% extends "admin/base_site.html" %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Settings</div>{% endblock %}
+{% block content_title %}{% endblock %}
+{% block content %}
+<div class="pagehead"><div><h1>Settings</h1><p class="sub">Set up the school once, then adjust when things change.</p></div></div>
+{% if sections %}
+<div class="sgrid">
+  {% for sec in sections %}
+  <section class="card scard" id="{{ sec.key }}">
+    <h2>{{ sec.label }}</h2>
+    <p class="sub">{{ sec.description }}</p>
+    {% if sec.key == "admins" and role_counts %}<div class="counts">{% for c in role_counts %}<span class="badge ok">{{ c }}</span>{% endfor %}</div>{% endif %}
+    {% for item in sec.items %}
+    <div class="srow">
+      <div><b>{{ item.title }}</b><span>{{ item.description }}</span></div>
+      <div>
+        <a class="btn alt" href="{{ item.url }}">Manage</a>
+        {% if item.add_url %}<a class="btn" href="{{ item.add_url }}">Add</a>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</div>
+{% else %}
+<section class="card"><p>There is nothing to set up from your account. Ask the Principal if something needs changing.</p></section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "admin/base_site.html" %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Help</div>{% endblock %}
+{% block content_title %}{% endblock %}
+{% block content %}
+<div class="pagehead"><div><h1>Help</h1><p class="sub">Short guides for the things you do most.</p></div></div>
+<div class="sgrid">
+  {% if perms.attendance.add_attendanceregister %}
+  <section class="card scard"><h2>Take attendance</h2>
+    <ol class="help-steps"><li>Open <b>Attendance</b> in the menu.</li><li>Press <b>Take attendance</b> next to your class.</li><li>Everyone starts as present. Tap Absent, Late or Excused for the exceptions and add a reason if you like.</li><li>Press <b>Save attendance</b>. You can open the same day again to correct it.</li></ol></section>
+  {% endif %}
+  {% if perms.grades.view_assessment %}
+  <section class="card scard"><h2>Enter grades</h2>
+    <ol class="help-steps"><li>Open <b>Gradebook</b> and choose the term.</li><li>Press <b>Enter grades</b> for your subject. Use <b>Add assessment</b> first for a new quiz, midterm or exam.</li><li>Type the scores. Leave a box empty if the student has no score yet. An empty box is not counted as zero.</li><li>Press <b>Save grades</b>. The term grade, letter and rank update automatically.</li></ol></section>
+  {% endif %}
+  {% if perms.reports.view_reportcomment %}
+  <section class="card scard"><h2>Report cards</h2>
+    <ol class="help-steps"><li>Open <b>Report cards</b> and choose the term.</li><li>Press <b>Comments</b> to write the class teacher's and the Principal's comments.</li><li>Press <b>Class PDF</b> to print the whole class, or <b>PDF</b> beside one student.</li><li>Cards say PROVISIONAL until the Principal locks the term. Print the final copies after that.</li></ol></section>
+  {% endif %}
+  {% if perms.people.add_student %}
+  <section class="card scard"><h2>Add students</h2>
+    <ol class="help-steps"><li>Open <b>Students</b>. Use <b>Add student</b> for one, or <b>Import from CSV</b> for many.</li><li>For an import, download the template, fill it in and choose <b>Preview only</b> first.</li><li>Fix any lines the preview lists, then upload again without the preview box ticked.</li></ol></section>
+  {% endif %}
+  {% if perms.academics.change_enrollment %}
+  <section class="card scard"><h2>End of year</h2>
+    <ol class="help-steps"><li>Open <b>Classes</b> and tick the class.</li><li>Choose <b>Promote this class to next year</b>, pick the next grade and tick any student who repeats.</li><li>Use <b>Graduate</b> for the final grade.</li></ol></section>
+  {% endif %}
+  <section class="card scard"><h2>Your account</h2>
+    <ol class="help-steps"><li>Use <b>Change password</b> at the top right whenever you like.</li><li>After 5 wrong passwords an account is locked for 15 minutes. Wait, or ask the school administrator.</li><li>Press the arrows at the top of the menu to make it narrower.</li><li>Use the search box at the top to find a student by name or number.</li></ol></section>
+</div>
+{% endblock %}

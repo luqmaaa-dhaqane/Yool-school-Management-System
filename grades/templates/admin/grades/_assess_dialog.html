@@ -1,0 +1,15 @@
+<dialog class="modal" id="assess-dialog" aria-labelledby="assess-title">
+  <form method="post" action="">
+    {% csrf_token %}
+    <div><h2 id="assess-title" data-dialog-title>Add assessment</h2><p class="sub" data-dialog-sub>{{ sub }}</p></div>
+    <label>Title<input class="in" type="text" name="title" maxlength="100" required placeholder="For example: Quiz 1"></label>
+    <label>Type<select class="in" name="assessment_type" required>{% for t in types %}<option value="{{ t.pk }}">{{ t.name }} ({{ t.weight_percent|floatformat:"-2" }}% of the grade)</option>{% endfor %}</select></label>
+    <label>Out of (maximum score)<input class="in" type="text" inputmode="decimal" name="max_score" required placeholder="For example: 20"></label>
+    <label>Date (optional)<input class="in" type="date" name="held_on" {% if term %}min="{{ term.starts_on|date:'Y-m-d' }}" max="{{ term.ends_on|date:'Y-m-d' }}"{% endif %}></label>
+    <div class="actions-row">
+      <button type="submit" class="btn danger" data-delete hidden formnovalidate>Delete</button>
+      <button type="button" class="btn alt" data-close>Cancel</button>
+      <button type="submit" class="btn">Save</button>
+    </div>
+  </form>
+</dialog>

@@ -1,17 +1,16 @@
-{% extends "admin/base_site.html" %}
-{% block title %}Sign in | {{ brand_short_name }}{% endblock %}
-{% block extrastyle %}{{ block.super }}{{ form.media }}{% endblock %}
-{% block bodyclass %}{{ block.super }} login{% endblock %}
-{% block header %}{% endblock %}
-{% block nav-breadcrumbs %}{% endblock %}
-{% block nav-sidebar %}{% endblock %}
-{% block messages %}{% endblock %}
-{% block content_title %}{% endblock %}
-{% block content %}
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in | {{ brand_short_name }}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="{% static 'core/theme.css' %}">
+{% if brand_logo_url %}<link rel="icon" href="{{ brand_logo_url }}">{% endif %}
+<script defer src="{% static 'core/show_password.js' %}"></script>
+</head>
+<body class="login">
 <div class="login-shell">
   <section class="hero">
     <div>{% if brand_logo_url %}<span class="tile"><img src="{{ brand_logo_url }}" alt="Yool International School logo"></span>{% endif %}</div>
-    <div><h1>{{ brand_name }}</h1><p>{{ brand_subtitle }}. Attendance, grades and report cards in one place.</p></div>
+    <div><h1>{{ brand_name }}</h1><p>{{ brand_subtitle }}</p></div>
   </section>
   <section class="formwrap">
     <form action="{{ app_path }}" method="post" id="login-form" class="formcard">{% csrf_token %}
@@ -26,4 +25,4 @@
     </form>
   </section>
 </div>
-{% endblock %}
+</body></html>

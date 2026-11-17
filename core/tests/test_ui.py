@@ -15,7 +15,8 @@ FRI = date(2026, 10, 9)  # Friday: non-teaching by default
 
 def nav_labels(html):
     block = re.search(r'<nav class="yool-side".*?</nav>', html, re.S)
-    return re.findall(r"</svg>([^<]+)</a>", block.group(0)) if block else []
+    labels = re.findall(r'<span class="lbl">([^<]+)</span>', block.group(0)) if block else []
+    return [l for l in labels if l != "Collapse menu"]
 
 
 class SidebarTests(Base):
@@ -24,10 +25,10 @@ class SidebarTests(Base):
         return nav_labels(self.client.get(path).content.decode())
 
     def test_principal_sees_everything_including_settings(self):
-        self.assertEqual(self.labels(self.principal), ["Overview", "Students", "Classes", "Attendance", "Gradebook", "Report cards", "Settings"])
+        self.assertEqual(self.labels(self.principal), ["Overview", "Students", "Classes", "Attendance", "Gradebook", "Report cards", "Settings", "Help"])
 
     def test_registrar_has_no_settings(self):
-        self.assertEqual(self.labels(self.registrar), ["Overview", "Students", "Classes", "Attendance", "Gradebook", "Report cards"])
+        self.assertEqual(self.labels(self.registrar), ["Overview", "Students", "Classes", "Attendance", "Gradebook", "Report cards", "Help"])
 
     def test_teacher_has_no_settings(self):
         self.assertNotIn("Settings", self.labels(self.homeroom))
@@ -40,7 +41,7 @@ class SidebarTests(Base):
     def current(self, user, path):
         self.client.force_login(user)
         html = self.client.get(path).content.decode()
-        return re.findall(r'<a href="[^"]*" class="on" aria-current="page">.*?</svg>([^<]+)</a>', html)
+        return re.findall(r'class="on" aria-current="page"><svg.*?</svg><span class="lbl">([^<]+)</span>', html)
 
     def test_current_section_is_marked_once(self):
         self.assertEqual(self.current(self.principal, "/admin/"), ["Overview"])
@@ -162,10 +163,175 @@ class DashboardTests(Base):
             self.client.force_login(user)
             response = self.client.get("/admin/")
             self.assertEqual(response.status_code, 200, user.username)
-            self.assertIn("All records", response.content.decode())
+            self.assertIn("Overview", response.content.decode())
 
     def test_home_page_for_a_teacher_with_nothing_assigned_is_friendly(self):
         lonely = User.objects.create_user("lonely", password="x-long-test-password-1", role=Role.TEACHER, school=self.school)
         self.client.force_login(lonely)
         html = self.client.get("/admin/").content.decode()
         self.assertIn("ask the school office", html)
+
+
+class SettingsSectionTests(Base):
+    def page(self, user, path):
+        self.client.force_login(user)
+        return self.client.get(path).content.decode()
+
+    def test_settings_is_its_own_page_with_sections_and_buttons(self):
+        html = self.page(self.principal, "/admin/settings/")
+        for needle in ("Academic years", "Terms", "Grade levels", "Subjects", "Assessment types", "Grade bands", "Holidays",
+                       "Admins and staff", "Audit log", "School profile"):
+            self.assertIn(needle, html)
+        self.assertIn(">Manage<", html)
+        self.assertIn(">Add<", html)
+        self.assertNotIn("Today's registers", html)   # not the overview scrolled down
+
+    def test_admins_section_shows_who_the_admins_are(self):
+        html = self.page(self.principal, "/admin/settings/")
+        self.assertIn("principal", html)
+        self.assertIn("teachers", html)
+
+    def test_read_only_items_have_no_add_button(self):
+        html = self.page(self.principal, "/admin/settings/")
+        school_block = html[html.index('id="school"'):html.index('id="academic"')]
+        self.assertNotIn(">Add<", school_block)
+        audit_block = html[html.index('id="activity"'):]
+        self.assertNotIn(">Add<", audit_block)
+
+    def test_every_settings_page_has_the_section_tabs(self):
+        for path in ("/admin/settings/", "/admin/academics/subject/", "/admin/accounts/user/", "/admin/grades/gradeband/"):
+            html = self.page(self.principal, path)
+            self.assertIn('class="stabs"', html, path)
+            for tab in (">All settings<", ">Academic<", ">Grading<", ">Attendance<", ">Admins<", ">Activity<"):
+                self.assertIn(tab, html, path)
+
+    def test_the_current_tab_and_pill_are_marked(self):
+        html = self.page(self.principal, "/admin/academics/term/")
+        self.assertRegex(html, r'class="on" aria-current="page">Academic<')
+        self.assertRegex(html, r'class="on" aria-current="page">Terms<')
+        self.assertIn(">Subjects<", html)  # the other pills of the section
+
+    def test_admins_tab_lists_the_staff(self):
+        html = self.page(self.principal, "/admin/accounts/user/")
+        self.assertRegex(html, r'class="on" aria-current="page">Admins<')
+        self.assertIn("maths", html)
+
+    def test_sidebar_settings_link_opens_the_hub(self):
+        html = self.page(self.principal, "/admin/")
+        self.assertIn('href="/admin/settings/"', html)
+
+    def test_a_teacher_has_no_settings_item_but_the_page_is_safe(self):
+        self.assertNotIn("Settings", nav_labels(self.page(self.homeroom, "/admin/")))
+        html = self.page(self.homeroom, "/admin/settings/")
+        self.assertNotIn("Audit log", html)
+        self.assertNotIn("Staff accounts", html)
+
+    def test_settings_hub_requires_sign_in(self):
+        self.assertEqual(self.client.get("/admin/settings/").status_code, 302)
+
+
+class ShellFeatureTests(Base):
+    def page(self, user, path="/admin/"):
+        self.client.force_login(user)
+        return self.client.get(path).content.decode()
+
+    def test_sidebar_can_collapse_and_is_pinned(self):
+        html = self.page(self.principal)
+        self.assertIn('class="side-toggle"', html)
+        self.assertIn("core/shell.js", html)
+        self.assertIn("yool.side", html)                     # remembers the choice
+        from django.contrib.staticfiles import finders
+
+        css = open(finders.find("core/theme.css"), encoding="utf-8").read()
+        rule = css[css.index(".yool-side {"):css.index("}", css.index(".yool-side {"))]
+        self.assertIn("position: sticky", rule)              # stays put while the page scrolls
+        self.assertIn("overflow-y: auto", rule)
+        self.assertIn("side-collapsed", css)
+
+    def test_every_menu_item_has_a_tooltip_for_the_collapsed_state(self):
+        html = self.page(self.principal)
+        self.assertIn('title="Gradebook"', html)
+
+    def test_student_search_in_the_header_for_people_who_may_see_students(self):
+        self.assertIn('role="search"', self.page(self.principal))
+        self.assertIn('action="/admin/people/student/"', self.page(self.principal))
+        from accounts.models import User
+
+        nobody = User.objects.create_user("none", password="x-long-test-password-1", school=self.school, is_staff=True)  # no role, no permissions
+        self.assertNotIn('role="search"', self.page(nobody))
+
+    def test_header_search_finds_a_student(self):
+        self.client.force_login(self.principal)
+        html = self.client.get("/admin/people/student/?q=Cali").content.decode()
+        self.assertIn("Cali", html)
+        self.assertNotIn("Abdi", html)
+
+    def test_help_page_is_role_aware(self):
+        teacher_help = self.page(self.homeroom, "/admin/help/")
+        self.assertIn("Take attendance", teacher_help)
+        self.assertNotIn("Add students", teacher_help)
+        self.assertIn("Add students", self.page(self.registrar, "/admin/help/"))
+        self.assertRegex(self.page(self.principal, "/admin/help/"), r'class="on" aria-current="page"><svg.*?</svg><span class="lbl">Help</span>')
+
+    def test_forms_have_no_popup_shortcut_icons(self):
+        self.client.force_login(self.principal)
+        html = self.client.get("/admin/grades/assessment/add/").content.decode()
+        self.assertIn("<select", html)
+        self.assertNotIn("add-related", html)
+        self.assertNotIn("change-related", html)
+        self.assertNotIn("delete-related", html)
+        self.assertNotIn("view-related", html)
+
+    def test_inline_forms_hide_the_shortcuts_too(self):
+        self.client.force_login(self.principal)
+        html = self.client.get(f"/admin/academics/classsection/{self.section.pk}/change/").content.decode()
+        self.assertNotIn("add-related", html)
+
+    def test_login_page_is_standalone_and_has_no_marketing_line(self):
+        html = self.client.get("/admin/login/").content.decode()
+        self.assertNotIn("Attendance, grades", html)
+        self.assertNotIn("in one place", html)
+        self.assertIn("Student Management System", html)
+        self.assertNotIn('id="content"', html)               # not inside the padded admin layout
+        self.assertNotIn("yool-side", html)
+
+    def test_kpi_numbers_are_moderate(self):
+        from django.contrib.staticfiles import finders
+
+        css = open(finders.find("core/theme.css"), encoding="utf-8").read()
+        rule = css[css.index(".kpi b {"):css.index("}", css.index(".kpi b {"))]
+        self.assertIn("font-size: 22px", rule)
+
+    def test_buttons_for_actions_use_the_theme(self):
+        from django.contrib.staticfiles import finders
+
+        css = open(finders.find("core/theme.css"), encoding="utf-8").read()
+        for needle in (".object-tools a", ".submit-row input[type=submit]", "#changelist .actions button.button", ".btn.danger", "[hidden] { display: none !important; }", "top: 72px"):
+            self.assertIn(needle, css)
+
+
+class RankWordingTests(Base):
+    def test_rank_not_position(self):
+        from grades.models import Assessment
+        from reports.models import ReportComment
+
+        self.client.force_login(self.principal)
+        quiz = self.assess("Quiz 1")
+        self.scores(quiz, [20, 10, 5])
+        grid = self.client.get(f"/admin/grades/assessment/grid/{self.maths.pk}/{self.term.pk}/").content.decode()
+        self.assertIn(">Rank<", grid)
+        self.assertNotIn("Position", grid)
+        comments = self.client.get(f"/admin/reports/reportcomment/comments/{self.section.pk}/{self.term.pk}/").content.decode()
+        self.assertIn("rank 1 of 3", comments)
+        self.assertNotIn("position", comments)
+
+    def test_report_card_pdf_says_rank(self):
+        from grades.models import Assessment
+        from reports.pdf import render_report_cards
+        from reports.services import build_report_cards
+
+        self.scores(self.assess("Quiz 1"), [20, 10, 5])
+        data = render_report_cards(build_report_cards(self.section, self.term), compress=False)
+        self.assertIn(b"Class rank", data)
+        self.assertIn(b"Rank", data)
+        self.assertNotIn(b"Position", data)

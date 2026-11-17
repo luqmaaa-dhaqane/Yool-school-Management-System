@@ -1,4 +1,19 @@
-class SchoolScopedAdminMixin:
+from django.contrib.admin.widgets import RelatedFieldWidgetWrapper
+
+
+class NoRelatedShortcuts:
+    """No pencil / plus / delete / eye shortcuts next to dropdowns: they open pop-up windows."""
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        field = super().formfield_for_dbfield(db_field, request, **kwargs)
+        widget = getattr(field, "widget", None)
+        if isinstance(widget, RelatedFieldWidgetWrapper):
+            widget.can_add_related = widget.can_change_related = False
+            widget.can_delete_related = widget.can_view_related = False
+        return field
+
+
+class SchoolScopedAdminMixin(NoRelatedShortcuts):
     """Scopes an admin to the logged-in user's school.
 
     * Non-superusers only see rows of their own school.

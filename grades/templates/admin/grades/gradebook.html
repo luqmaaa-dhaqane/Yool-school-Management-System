@@ -30,7 +30,7 @@
       <td class="num">{% if r.expected %}{{ r.entered }} / {{ r.expected }}{% else %}-{% endif %}</td>
       <td>
         <a class="btn" href="{% url 'admin:grades_grid' r.cs.pk term.pk %}">{% if r.can_grade and not term.is_locked %}Enter grades{% else %}View{% endif %}</a>
-        {% if can_add and r.can_grade and not term.is_locked %}<a class="btn alt" href="{% url 'admin:grades_assessment_add' %}?class_subject={{ r.cs.pk }}&term={{ term.pk }}">Add assessment</a>{% endif %}
+        {% if can_add and r.can_grade and not term.is_locked %}<button type="button" class="btn alt" data-open-dialog="assess-dialog" data-title="Add assessment" data-sub="{{ r.cs.class_section.display_name }}, {{ r.cs.subject }}" data-action-url="{% url 'admin:grades_quick_add' r.cs.pk term.pk %}">Add assessment</button>{% endif %}
       </td>
     </tr>
   {% empty %}
@@ -39,4 +39,5 @@
   </tbody>
 </table></div></section>
 {% endif %}
+{% if can_add and term and not term.is_locked %}{% include "admin/grades/_assess_dialog.html" with sub="" %}{% endif %}
 {% endblock %}

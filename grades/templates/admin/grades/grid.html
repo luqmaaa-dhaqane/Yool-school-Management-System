@@ -7,21 +7,22 @@
   <div><h1>{{ class_subject.subject }}</h1>
   <p class="sub">{{ class_subject.class_section.display_name }}, {{ term.name }} {% if locked %}<span class="badge no">Locked</span>{% else %}<span class="badge warn">Term open</span>{% endif %}
   &middot; Teacher: {{ class_subject.teacher|default:"not assigned" }}</p></div>
-  {% if can_add %}<a class="btn alt" href="{% url 'admin:grades_assessment_add' %}?class_subject={{ class_subject.pk }}&term={{ term.pk }}">Add assessment</a>{% endif %}
+  {% if can_add %}<button type="button" class="btn alt" data-open-dialog="assess-dialog" data-title="Add assessment" data-action-url="{% url 'admin:grades_quick_add' class_subject.pk term.pk %}">Add assessment</button>{% endif %}
 </div>
 {% if not assessments %}
   <section class="card"><p>No assessments yet for this term. {% if can_add %}Add one (for example a quiz) to start entering scores.{% endif %}</p></section>
 {% else %}
-<form method="post">
+<form method="post" data-warn-unsaved>
   {% csrf_token %}
   <section class="card"><div class="grid-wrap">
   <table class="tbl grid">
     <thead>
       <tr><th>Student</th>
         {% for a in assessments %}
-          <th class="num">{% if editable or locked %}<a href="{% url 'admin:grades_assessment_change' a.pk %}">{{ a.title }}</a>{% else %}{{ a.title }}{% endif %}<span class="sub2">{{ a.assessment_type.name }}, out of {{ a.max_score|floatformat:"-2" }}</span></th>
+          <th class="num">{% if locked %}<a href="{% url 'admin:grades_assessment_change' a.pk %}">{{ a.title }}</a>{% else %}{{ a.title }}{% endif %}<span class="sub2">{{ a.assessment_type.name }}, out of {{ a.max_score|floatformat:"-2" }}</span>
+            {% if can_add %}<button type="button" class="linkbtn" data-open-dialog="assess-dialog" data-title="Edit assessment" data-action-url="{% url 'admin:grades_quick_edit' a.pk %}" data-delete-url="{% url 'admin:grades_quick_delete' a.pk %}" data-name="{{ a.title }}" data-type="{{ a.assessment_type_id }}" data-max="{{ a.max_score|floatformat:'-2' }}" data-date="{{ a.held_on|date:'Y-m-d' }}">Edit</button>{% endif %}</th>
         {% endfor %}
-        <th class="num">Term %</th><th class="num">Grade</th><th class="num">Position</th></tr>
+        <th class="num">Term %</th><th class="num">Grade</th><th class="num">Rank</th></tr>
     </thead>
     <tbody>
     {% for r in rows %}
@@ -47,4 +48,5 @@
   {% endif %}
 </form>
 {% endif %}
+{% if can_add %}{% include "admin/grades/_assess_dialog.html" with sub=class_subject.class_section.display_name %}{% endif %}
 {% endblock %}

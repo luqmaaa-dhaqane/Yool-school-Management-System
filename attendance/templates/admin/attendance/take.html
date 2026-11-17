@@ -12,7 +12,7 @@
   <p class="errornote">{{ problem }}</p>
   <p><a class="btn alt" href="{% url 'admin:attendance_attendanceregister_changelist' %}?date={{ day|date:'Y-m-d' }}">Back to attendance</a></p>
 {% else %}
-<form method="post" id="att-form">
+<form method="post" id="att-form" data-warn-unsaved>
   {% csrf_token %}
   <section class="card">
   {% for r in rows %}

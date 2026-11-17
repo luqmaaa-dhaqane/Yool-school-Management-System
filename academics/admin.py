@@ -11,7 +11,7 @@ from django.utils.html import format_html
 
 from audit.mixins import AuditedAdminMixin
 from audit.models import AuditLog
-from core.admin_mixins import SchoolScopedAdminMixin
+from core.admin_mixins import NoRelatedShortcuts, SchoolScopedAdminMixin
 from core.csv_utils import safe_row
 from core.exceptions import DomainError
 
@@ -20,7 +20,7 @@ from .models import AcademicYear, ClassSection, ClassSubject, Enrollment, GradeL
 from .services import graduate_section, promote_section
 
 
-class TermInline(admin.TabularInline):
+class TermInline(NoRelatedShortcuts, admin.TabularInline):
     model = Term
     extra = 0
 
@@ -42,7 +42,7 @@ class SubjectAdmin(AuditedAdminMixin, SchoolScopedAdminMixin, admin.ModelAdmin):
     search_fields = ("code", "name")
 
 
-class ClassSubjectInline(admin.TabularInline):
+class ClassSubjectInline(NoRelatedShortcuts, admin.TabularInline):
     """Subjects of a class and who teaches each (set up once per class)."""
 
     model = ClassSubject

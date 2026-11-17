@@ -105,6 +105,14 @@ python manage.py finish_update    # refreshes permissions and adds any missing s
 - **Logo:** `core/static/core/logo.jpg` (the tree emblem and YOOL lettering, shown on a white tile and on report cards).
   Replace the file to change it. Name and subtitle come from `SITE_NAME`, `SITE_SUBTITLE`, `SITE_SHORT_NAME` in `.env`.
 - **Light theme only:** the dark-mode switch was removed so every screen matches the design.
+- **Menu:** stays in place while you scroll and can be collapsed to icons (the arrows at its top; the choice is remembered).
+  The search box in the header finds a student by name or number.
+- **Settings:** its own section (School, Academic, Grading, Attendance, Admins, Activity) with tabs and a button for every
+  action (`core/settings_registry.py` lists what is in it). Staff accounts live under **Admins**.
+- **Gradebook:** "Add assessment" and "Edit" open a dialog on the page (no separate window). An assessment with scores
+  cannot be deleted. Positions are called **ranks**.
+- **Help:** short role-aware guides at `/admin/help/`.
+- **Safety nets:** a second click on Save is ignored; leaving attendance, grades or comments with unsaved changes asks first.
 - **Locked accounts** see a branded "too many sign-in attempts" page.
 
 ## Security

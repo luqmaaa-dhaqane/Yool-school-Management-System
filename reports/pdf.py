@@ -94,7 +94,7 @@ def _card_story(card):
         fixed = [32 * mm, 27 * mm] + [16 * mm] * n_types + [15 * mm, 13 * mm, 17 * mm]
         widths = fixed + [max(WIDTH - sum(fixed), 18 * mm)]
         head = [_p("Subject", "headl"), _p("Teacher", "headl")] + [_p(t, "head") for t in card.type_names] + [
-            _p("Term %", "head"), _p("Grade", "head"), _p("Position", "head"), _p("Remark", "headl")]
+            _p("Term %", "head"), _p("Grade", "head"), _p("Rank", "head"), _p("Remark", "headl")]
         rows = [head]
         for line in card.lines:
             rows.append([_p(line.subject), _p(line.teacher)] + [_p(_num(line.by_type.get(t)), "cellc") for t in card.type_names] + [
@@ -106,7 +106,7 @@ def _card_story(card):
         style += [("BACKGROUND", (0, i), (-1, i), LIGHT) for i in range(2, len(rows), 2)]
         table.setStyle(TableStyle(style))
         story.append(table)
-        summary = Table([[_p("Overall average", "label"), _p("Overall grade", "label"), _p("Position in class", "label"), _p("Remark", "label")],
+        summary = Table([[_p("Overall average", "label"), _p("Overall grade", "label"), _p("Class rank", "label"), _p("Remark", "label")],
                          [_p(_num(card.overall) + ("%" if card.overall is not None else ""), "value"), _p(card.overall_label or "-", "value"),
                           _p(f"{card.rank} of {card.class_size}" if card.rank else "-", "value"), _p(card.overall_remark or "-", "value")]],
                         colWidths=[WIDTH * 0.25] * 4)

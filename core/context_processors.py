@@ -25,6 +25,7 @@ _ICONS = {
     "Gradebook": '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 19V5M9 8h6"/>',
     "Report cards": '<path d="M6 3h9l4 4v14H6zM15 3v4h4M9 12h6M9 16h6"/>',
     "Settings": '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+    "Help": '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.5-2.5 2-2.5 3.5M12 17h.01"/>',
 }
 _NAV = [
     ("Overview", "admin:index", None, ("/admin/",)),
@@ -40,11 +41,17 @@ _NAV = [
 
 
 def navigation(request):
-    """The sidebar for signed-in staff: only the sections the person may open, with the current one marked."""
+    """Sidebar items (only what the person may open), the current section, and the Settings tabs."""
+    from .settings_registry import visible_sections
+
     user = getattr(request, "user", None)
     if not (user and user.is_authenticated and user.is_staff):
-        return {"nav_items": []}
+        return {"nav_items": [], "settings_tabs": [], "settings_pills": []}
     path = request.path
+    sections = visible_sections(user)
+    settings_prefixes = ("/admin/settings/",) + tuple(i["prefix"] for sec in sections for i in sec["items"])
+    in_settings = any(path.startswith(p) for p in settings_prefixes)
+
     items, current = [], None
     for label, url_name, perm, prefixes in _NAV:
         if perm and not user.has_perm(perm):
@@ -56,11 +63,26 @@ def navigation(request):
                 current = item
         elif any(path.startswith(p) for p in prefixes):
             current = item
+    settings_item = None
     if user.is_superuser or user.has_perm("academics.add_academicyear"):
-        settings_item = {"label": "Settings", "url": reverse("admin:index") + "#records", "icon": mark_safe(_ICONS["Settings"]), "active": False}
+        settings_item = {"label": "Settings", "url": reverse("admin:settings"), "icon": mark_safe(_ICONS["Settings"]), "active": False}
         items.append(settings_item)
-        if current is None and path.startswith("/admin/") and path.rstrip("/") != "/admin":
-            current = settings_item
+    help_item = {"label": "Help", "url": reverse("admin:help"), "icon": mark_safe(_ICONS["Help"]), "active": False}
+    items.append(help_item)
+    if path.startswith("/admin/help/"):
+        current = help_item
+    elif settings_item and (in_settings or (current is None and path.startswith("/admin/") and path.rstrip("/") != "/admin")):
+        current = settings_item
     if current:
         current["active"] = True
-    return {"nav_items": items}
+
+    tabs, pills = [], []
+    if in_settings and sections:
+        hub = path.startswith("/admin/settings/")
+        tabs.append({"label": "All settings", "url": reverse("admin:settings"), "active": hub})
+        for sec in sections:
+            owns = any(path.startswith(i["prefix"]) for i in sec["items"])
+            tabs.append({"label": sec["label"], "url": sec["items"][0]["url"], "active": owns})
+            if owns and len(sec["items"]) > 1:
+                pills = [{"label": i["title"], "url": i["url"], "active": path.startswith(i["prefix"])} for i in sec["items"]]
+    return {"nav_items": items, "settings_tabs": tabs, "settings_pills": pills}

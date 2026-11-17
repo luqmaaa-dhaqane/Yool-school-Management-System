@@ -10,19 +10,19 @@ from django.urls import path
 from academics.models import Enrollment
 from audit.mixins import AuditedAdminMixin
 from audit.models import AuditLog
-from core.admin_mixins import SchoolScopedAdminMixin
+from core.admin_mixins import NoRelatedShortcuts, SchoolScopedAdminMixin
 from core.exceptions import DomainError
 
 from .importers import TEMPLATE_HEADER, TEMPLATE_ROWS, StudentImporter
 from .models import Guardian, Student, StudentGuardian
 
 
-class StudentGuardianInline(admin.TabularInline):
+class StudentGuardianInline(NoRelatedShortcuts, admin.TabularInline):
     model = StudentGuardian
     extra = 1
 
 
-class EnrollmentInline(admin.TabularInline):
+class EnrollmentInline(NoRelatedShortcuts, admin.TabularInline):
     """Place a student in a class from the student's own page."""
 
     model = Enrollment

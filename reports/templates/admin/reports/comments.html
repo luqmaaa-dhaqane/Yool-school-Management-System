@@ -12,7 +12,7 @@
   {% if may_principal %}You can write the <strong>Principal's comment</strong>.{% else %}The Principal's comment is read-only for you.{% endif %}
   Up to {{ max_comment }} characters each.
 </p>
-<form method="post">
+<form method="post" data-warn-unsaved>
   {% csrf_token %}
   <section class="card"><div class="xscroll">
   <table class="tbl cm">
@@ -21,7 +21,7 @@
     {% for r in rows %}
       <tr>
         <td><b>{{ r.card.student.full_name }}</b><br><small class="note">{{ r.card.student.student_no }}</small></td>
-        <td>{% if r.card.overall is not None %}{{ r.card.overall }}% {{ r.card.overall_label }}<br><small class="note">position {{ r.card.rank }} of {{ r.card.class_size }}<br>attendance {% if r.card.attendance.rate is not None %}{{ r.card.attendance.rate }}%{% else %}-{% endif %}</small>{% else %}<small class="note">no grades yet</small>{% endif %}</td>
+        <td>{% if r.card.overall is not None %}{{ r.card.overall }}% {{ r.card.overall_label }}<br><small class="note">rank {{ r.card.rank }} of {{ r.card.class_size }}<br>attendance {% if r.card.attendance.rate is not None %}{{ r.card.attendance.rate }}%{% else %}-{% endif %}</small>{% else %}<small class="note">no grades yet</small>{% endif %}</td>
         <td><textarea class="in" name="teacher_{{ r.card.enrollment.pk }}" rows="3" maxlength="{{ max_comment }}" {% if not may_teacher %}readonly{% endif %}>{{ r.teacher }}</textarea></td>
         <td><textarea class="in" name="principal_{{ r.card.enrollment.pk }}" rows="3" maxlength="{{ max_comment }}" {% if not may_principal %}readonly{% endif %}>{{ r.principal }}</textarea></td>
         <td><a href="{% url 'admin:reports_pdf_student' section.pk term.pk r.card.enrollment.pk %}" target="_blank">PDF</a></td>
